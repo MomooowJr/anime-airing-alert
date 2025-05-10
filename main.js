@@ -128,3 +128,8 @@ app.on('window-all-closed', () => {
 app.on('activate', () => {
   if (BrowserWindow.getAllWindows().length === 0) createMainWindow();
 });
+
+app.on('before-quit', () => {
+  if (tray) tray.destroy();
+});
+

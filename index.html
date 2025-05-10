@@ -299,7 +299,15 @@
         <button id="closeSettingsBtn">x</button>
       </div>
       <div class="panel-content">
-        <label>Thème par défaut :</label>
+        <label id="labelLanguage" for="languageSelect"
+          >Langue / Language :</label
+        >
+        <select id="languageSelect">
+          <option value="fr">Français</option>
+          <option value="en">English</option>
+        </select>
+
+        <label id="labelTheme">Thème par défaut :</label>
         <select id="defaultTheme">
           <option value="0">Dark</option>
           <option value="1">Light</option>
@@ -307,27 +315,86 @@
           <option value="3">Neo</option>
         </select>
 
-        <label>Fréquence rafraîchissement :</label>
+        <label id="labelRefresh">Fréquence rafraîchissement :</label>
         <select id="refreshRate">
           <option value="1800000">30 minutes</option>
           <option value="3600000">1 heure</option>
           <option value="7200000">2 heures</option>
         </select>
 
-        <label>
+        <label id="labelTop">
           <input type="checkbox" id="alwaysOnTop" /> Toujours au-dessus
         </label>
       </div>
     </div>
     <script>
-      const themes = ["theme-dark", "theme-light", "theme-neon", "theme-neo"];
+      const translations = {
+        fr: {
+          title: "Prochains épisodes",
+          refresh: "Rafraîchir",
+          logout: "Déconnexion",
+          theme: "Thème",
+          settings: "Paramètres",
+          statusLoading: "Chargement en cours...",
+          statusUpdating: "Mise à jour...",
+          statusError: "Erreur de chargement.",
+          statusUpdatedAt: (time) => "Mis à jour : " + time,
+          upToDate: "À jour",
+          late: (n) => `${n} épisode${n > 1 ? "s" : ""} de retard`,
+          settingsTitle: "Paramètres",
+          labelLanguage: "Langue / Language :",
+          labelTheme: "Thème par défaut :",
+          labelRefresh: "Fréquence de rafraîchissement :",
+          labelTop: "Toujours au-dessus",
+        },
+        en: {
+          title: "Upcoming Episodes",
+          refresh: "Refresh",
+          logout: "Logout",
+          theme: "Theme",
+          settings: "Settings",
+          statusLoading: "Loading...",
+          statusUpdating: "Updating...",
+          statusError: "Error while loading.",
+          statusUpdatedAt: (time) => "Updated at: " + time,
+          upToDate: "Up to date",
+          late: (n) => `${n} episode${n > 1 ? "s" : ""} behind`,
+          settingsTitle: "Settings",
+          labelLanguage: "Language:",
+          labelTheme: "Default theme:",
+          labelRefresh: "Refresh rate:",
+          labelTop: "Always on top",
+        },
+      };
+
+      let lang = localStorage.getItem("lang") || "fr";
       let currentTheme = 0;
       let refreshInterval;
 
       function applyTheme(index) {
+        const themes = ["theme-dark", "theme-light", "theme-neon", "theme-neo"];
         document.body.classList.remove(...themes);
         document.body.classList.add(themes[index]);
         localStorage.setItem("selected_theme", index);
+      }
+
+      function applyTranslations() {
+        const t = translations[lang];
+        document.getElementById("title").textContent = t.title;
+        document.getElementById("refreshBtn").textContent = t.refresh;
+        document.getElementById("logoutBtn").textContent = t.logout;
+        document.getElementById("themeBtn").textContent = t.theme;
+        document.getElementById("settingsBtn").textContent = t.settings;
+
+        // Panneau paramètres
+        document.getElementById("labelLanguage").textContent = t.labelLanguage;
+        document.getElementById("labelTheme").textContent = t.labelTheme;
+        document.getElementById("labelRefresh").textContent = t.labelRefresh;
+        document.getElementById("labelTop").lastChild.textContent =
+          " " + t.labelTop;
+        document.querySelector(
+          "#settingsPanel .panel-header span"
+        ).textContent = t.settingsTitle;
       }
 
       async function openAuthWindow() {
@@ -337,14 +404,15 @@
           location.reload();
         } catch (e) {
           document.getElementById("status").textContent =
-            "Échec connexion Anilist.";
+            "Connexion Anilist échouée.";
         }
       }
 
       async function fetchData() {
+        const t = translations[lang];
         const statusEl = document.getElementById("status");
         const listEl = document.getElementById("animeList");
-        statusEl.textContent = "Mise à jour...";
+        statusEl.textContent = t.statusUpdating;
 
         try {
           const token = localStorage.getItem("anilist_token");
@@ -439,14 +507,14 @@
               span.className = "episode-info";
               const dateStr = new Date(
                 entry.media.nextAiringEpisode.airingAt * 1000
-              ).toLocaleString("fr-FR", {
+              ).toLocaleString(lang === "fr" ? "fr-FR" : "en-US", {
                 weekday: "short",
                 day: "numeric",
                 month: "short",
                 hour: "2-digit",
                 minute: "2-digit",
               });
-              span.textContent = `Épisode ${entry.media.nextAiringEpisode.episode} – ${dateStr}`;
+              span.textContent = `Ep. ${entry.media.nextAiringEpisode.episode} – ${dateStr}`;
               info.appendChild(span);
 
               const aired = entry.media.nextAiringEpisode.episode - 1;
@@ -456,10 +524,7 @@
               const status = document.createElement("span");
               status.className =
                 diff <= 0 ? "status-up-to-date" : "status-late";
-              status.textContent =
-                diff <= 0
-                  ? "À jour"
-                  : `${diff} épisode${diff > 1 ? "s" : ""} de retard`;
+              status.textContent = diff <= 0 ? t.upToDate : t.late(diff);
               info.appendChild(status);
 
               div.appendChild(info);
@@ -467,16 +532,33 @@
             });
           }
 
-          statusEl.textContent =
-            "Mis à jour : " + new Date().toLocaleTimeString("fr-FR");
+          statusEl.textContent = t.statusUpdatedAt(
+            new Date().toLocaleTimeString(lang === "fr" ? "fr-FR" : "en-US")
+          );
         } catch (error) {
           console.error(error);
-          listEl.innerHTML = "<p><em>Erreur de chargement.</em></p>";
+          listEl.innerHTML =
+            "<p><em>" + translations[lang].statusError + "</em></p>";
           statusEl.textContent = error.message;
         }
       }
 
       document.addEventListener("DOMContentLoaded", () => {
+        // Langue
+        const langSelect = document.getElementById("languageSelect");
+        if (langSelect) {
+          langSelect.value = lang;
+          langSelect.addEventListener("change", (e) => {
+            lang = e.target.value;
+            localStorage.setItem("lang", lang);
+            applyTranslations();
+            fetchData();
+          });
+        }
+
+        applyTranslations();
+
+        // Theme
         const savedTheme = localStorage.getItem("selected_theme");
         if (savedTheme !== null) {
           currentTheme = parseInt(savedTheme);
@@ -486,6 +568,7 @@
           applyTheme(0);
         }
 
+        // Refresh
         const delay = parseInt(localStorage.getItem("refresh_rate") || 3600000);
         document.getElementById("refreshRate").value = delay;
         refreshInterval = setInterval(fetchData, delay);
@@ -495,9 +578,11 @@
         document.getElementById("alwaysOnTop").checked = top;
         window.electron.ipcInvoke("set-always-on-top", top);
 
+        // Boutons
         document.getElementById("settingsBtn").addEventListener("click", () => {
           document.getElementById("settingsPanel").style.display = "block";
         });
+
         document
           .getElementById("closeSettingsBtn")
           .addEventListener("click", () => {
@@ -535,7 +620,7 @@
           });
 
         document.getElementById("themeBtn").addEventListener("click", () => {
-          currentTheme = (currentTheme + 1) % themes.length;
+          currentTheme = (currentTheme + 1) % 4;
           applyTheme(currentTheme);
         });
 

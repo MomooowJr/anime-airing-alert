@@ -34,7 +34,7 @@ npm start
 
 To generate a standalone Windows **.exe** file:
 ```bash
-npm run package-win
+npm run build
 ```
 The build will be available in the dist/ folder.
 
@@ -79,7 +79,7 @@ npm start
 Pour générer un fichier exécutable **.exe** pour Windows :
 
 ```bash
-npm run package-win
+npm run build
 ```
 Le fichier sera disponible dans le dossier dist/.
 

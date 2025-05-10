@@ -5,6 +5,18 @@ let mainWindow;
 let authWindow;
 let tray;
 
+const gotTheLock = app.requestSingleInstanceLock();
+if (!gotTheLock) {
+  app.quit();
+} else {
+  app.on('second-instance', () => {
+    if (mainWindow) {
+      if (mainWindow.isMinimized()) mainWindow.restore();
+      mainWindow.show();
+    }
+  });
+}
+
 function createMainWindow() {
   mainWindow = new BrowserWindow({
     width: 400,
@@ -26,7 +38,6 @@ function createMainWindow() {
 
   mainWindow.loadFile('index.html');
 
-  // Gestion des liens externes
   ipcMain.handle('open-link', (event, url) => {
     shell.openExternal(url);
   });
@@ -36,6 +47,7 @@ function createMainWindow() {
   });
 
   ipcMain.handle('close-app', () => {
+    console.log("🔕 Demande de hide fenêtre (close-app)");
     mainWindow.hide();
   });
 
@@ -44,6 +56,8 @@ function createMainWindow() {
   });
 
   ipcMain.handle('force-quit', () => {
+    console.log("📤 Quit demandé (force)");
+    app.isQuitting = true;
     if (tray) tray.destroy();
     app.quit();
   });
@@ -79,8 +93,13 @@ function createMainWindow() {
   });
 
   mainWindow.on('close', (e) => {
-    e.preventDefault();
-    mainWindow.hide();
+    if (!app.isQuitting) {
+      e.preventDefault();
+      console.log("🧊 Fenêtre cachée (pas fermée)");
+      mainWindow.hide();
+    } else {
+      console.log("🔚 Fermeture réelle autorisée");
+    }
   });
 
   setupTray();
@@ -98,6 +117,8 @@ function setupTray() {
       { type: 'separator' },
       {
         label: 'Quitter', click: () => {
+          console.log("❌ Quit via systray");
+          app.isQuitting = true;
           if (tray) tray.destroy();
           app.quit();
         }
@@ -112,13 +133,17 @@ function setupTray() {
     });
 
   } catch (err) {
-    console.error("❌ Impossible de charger l’icône pour la tray :", err.message);
+    console.error("❌ Impossible de charger l’icône tray :", err.message);
   }
 }
 
-// Nettoyage du tray si l'app quitte
 app.on('before-quit', () => {
+  console.log("💀 before-quit déclenché");
   if (tray) tray.destroy();
+});
+
+app.on('quit', () => {
+  console.log("💥 App quit triggered");
 });
 
 app.whenReady().then(() => {
@@ -131,7 +156,7 @@ app.whenReady().then(() => {
 });
 
 app.on('window-all-closed', () => {
-  // Ne rien faire ici : l'app reste vivante en systray
+  // On ne ferme rien, car on utilise systray
 });
 
 app.on('activate', () => {

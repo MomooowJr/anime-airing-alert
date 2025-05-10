@@ -52,7 +52,7 @@ MIT © Momooow Jr
 
 Un widget flottant léger, développé avec **Electron**, qui affiche les prochains épisodes d’anime à venir depuis [Anilist](https://anilist.co).
 
-## 🎯 Fonctionnalités
+### 🎯 Fonctionnalités
 
 - Affiche les prochains épisodes de votre liste Anilist
 - Connexion via Anilist OAuth2
@@ -61,11 +61,11 @@ Un widget flottant léger, développé avec **Electron**, qui affiche les procha
 - Contrôles pour masquer/afficher l’interface
 - Version exécutable pour Windows disponible
 
-## ⚙️ Prérequis
+### ⚙️ Prérequis
 
 - **Node.js v18 ou supérieur** doit être installé : [https://nodejs.org](https://nodejs.org)
 
-## 📦 Installation
+### 📦 Installation
 
 ```bash
 git clone https://github.com/MomooowJr/anime-airing-alert.git
@@ -73,3 +73,20 @@ cd anime-airing-alert
 npm install
 npm start
 ```
+
+### 🛠️ Compilation
+
+Pour générer un fichier exécutable **.exe** pour Windows :
+
+```bash
+npm run package-win
+```
+Le fichier sera disponible dans le dossier dist/.
+
+### 🔗 Téléchargements
+
+Les fichiers **.exe** finaux seront disponibles dans la section [Releases](https://github.com/MomooowJr/anime-airing-alert/releases). (bientôt)
+
+### 📜 Licence
+
+MIT © Momooow Jr

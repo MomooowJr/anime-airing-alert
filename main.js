@@ -26,9 +26,6 @@ function createMainWindow() {
 
   mainWindow.loadFile('index.html');
 
-  // Ouvre les DevTools si besoin :
-  // mainWindow.webContents.openDevTools();
-
   // Gestion des liens externes
   ipcMain.handle('open-link', (event, url) => {
     shell.openExternal(url);
@@ -39,11 +36,16 @@ function createMainWindow() {
   });
 
   ipcMain.handle('close-app', () => {
-    mainWindow.hide(); // ne ferme pas vraiment
+    mainWindow.hide();
   });
 
   ipcMain.handle('minimize-app', () => {
     mainWindow.minimize();
+  });
+
+  ipcMain.handle('force-quit', () => {
+    if (tray) tray.destroy();
+    app.quit();
   });
 
   ipcMain.handle('open-auth-window', async () => {
@@ -78,7 +80,7 @@ function createMainWindow() {
 
   mainWindow.on('close', (e) => {
     e.preventDefault();
-    mainWindow.hide(); // cache au lieu de quitter
+    mainWindow.hide();
   });
 
   setupTray();
@@ -94,8 +96,9 @@ function setupTray() {
     const contextMenu = Menu.buildFromTemplate([
       { label: 'Afficher', click: () => mainWindow.show() },
       { type: 'separator' },
-      { label: 'Quitter', click: () => {
-          tray.destroy();
+      {
+        label: 'Quitter', click: () => {
+          if (tray) tray.destroy();
           app.quit();
         }
       }
@@ -113,23 +116,24 @@ function setupTray() {
   }
 }
 
-app.whenReady().then(createMainWindow);
+// Nettoyage du tray si l'app quitte
+app.on('before-quit', () => {
+  if (tray) tray.destroy();
+});
 
-app.setLoginItemSettings({
-	openAtLogin: true,
-	path: process.execPath
+app.whenReady().then(() => {
+  createMainWindow();
+
+  app.setLoginItemSettings({
+    openAtLogin: true,
+    path: process.execPath
   });
-  
+});
 
 app.on('window-all-closed', () => {
-  // Ne quitte pas automatiquement : on reste actif en fond
+  // Ne rien faire ici : l'app reste vivante en systray
 });
 
 app.on('activate', () => {
   if (BrowserWindow.getAllWindows().length === 0) createMainWindow();
 });
-
-app.on('before-quit', () => {
-  if (tray) tray.destroy();
-});
-

@@ -1,0 +1,40 @@
+{
+	"name": "anime-airing-alert",
+	"version": "1.0.0",
+	"description": "Widget flottant pour voir les prochains épisodes d'anime depuis Anilist",
+	"main": "main.js",
+	"scripts": {
+	  "start": "electron .",
+	  "build": "electron-builder"
+	},
+	"author": "Momooow Jr",
+	"license": "MIT",
+	"devDependencies": {
+	  "electron": "^28.2.0",
+	  "electron-builder": "^24.10.0"
+	},
+	"build": {
+	  "appId": "com.momooowjr.animeairingalert",
+	  "productName": "AnimeAiringAlert",
+	  "directories": {
+		"buildResources": "assets/icons"
+	  },
+	  "files": [
+		"**/*"
+	  ],
+	  "win": {
+		"icon": "assets/icons/icon_64.png",
+		"target": "nsis"
+	  },
+	  "nsis": {
+		"oneClick": true,
+		"perMachine": false,
+		"allowElevation": true,
+		"allowToChangeInstallationDirectory": false,
+		"createDesktopShortcut": true,
+		"createStartMenuShortcut": true,
+		"shortcutName": "Anime Airing Alert"
+	  }
+	}
+  }
+  

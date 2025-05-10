@@ -1,0 +1,570 @@
+<!DOCTYPE html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Prochains épisodes</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      body.theme-dark {
+        background: rgba(32, 35, 42, 0.5);
+        backdrop-filter: blur(12px);
+        color: #ffffff;
+        font-family: "Poppins", sans-serif;
+      }
+      body.theme-light {
+        background: rgba(255, 255, 255, 0.9);
+        backdrop-filter: blur(6px);
+        color: #222;
+        font-family: "Poppins", sans-serif;
+      }
+      body.theme-neon {
+        background: linear-gradient(135deg, #ff00cc, #3333ff);
+        backdrop-filter: blur(8px);
+        color: #00ffff;
+        font-family: "Poppins", sans-serif;
+      }
+      body.theme-neo {
+        background: linear-gradient(145deg, #1e1f30, #151627);
+        backdrop-filter: blur(8px);
+        color: #f0f0f5;
+        font-family: "Poppins", sans-serif;
+      }
+
+      body {
+        margin: 0;
+        padding: 0;
+        display: flex;
+        flex-direction: column;
+        height: 100vh;
+        user-select: none;
+        overflow: hidden;
+      }
+
+      header {
+        -webkit-app-region: drag;
+        height: 40px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 10px;
+        font-size: 1.4em;
+        font-weight: 600;
+        text-shadow: 0 0 5px rgba(0, 0, 0, 0.5);
+      }
+
+      .window-buttons {
+        -webkit-app-region: no-drag;
+        display: flex;
+        gap: 5px;
+      }
+
+      .window-buttons button {
+        width: 25px;
+        height: 25px;
+        background: rgba(255, 255, 255, 0.1);
+        border: none;
+        border-radius: 50%;
+        cursor: pointer;
+        font-weight: bold;
+        color: inherit;
+      }
+
+      .window-buttons button:hover {
+        background: rgba(255, 255, 255, 0.3);
+      }
+
+      #menuToggleBtn {
+        background: rgba(255, 255, 255, 0.1);
+        border: none;
+        color: inherit;
+        font-size: 1.1em;
+        margin-left: 8px;
+        border-radius: 6px;
+        cursor: pointer;
+        padding: 2px 8px;
+        -webkit-app-region: no-drag;
+      }
+
+      #menuToggleBtn:hover {
+        background: rgba(255, 255, 255, 0.25);
+      }
+
+      .controls,
+      .controls-secondary {
+        display: flex;
+        justify-content: center;
+        flex-wrap: wrap;
+        gap: 6px;
+        padding: 6px;
+      }
+
+      .action {
+        background: rgba(255, 255, 255, 0.2);
+        color: inherit;
+        border: none;
+        border-radius: 8px;
+        padding: 6px 12px;
+        margin: 5px;
+        font-size: 0.9em;
+        cursor: pointer;
+        transition: background 0.3s;
+      }
+
+      .action:hover {
+        background: rgba(255, 255, 255, 0.4);
+      }
+
+      #status {
+        text-align: center;
+        font-size: 0.75em;
+        margin: 5px 0 10px 0;
+        color: inherit;
+      }
+
+      #animeList {
+        padding: 10px;
+        overflow-y: auto;
+        flex-grow: 1;
+      }
+
+      #animeList::-webkit-scrollbar {
+        width: 8px;
+      }
+      #animeList::-webkit-scrollbar-thumb {
+        background-color: rgba(255, 255, 255, 0.3);
+        border-radius: 10px;
+      }
+
+      .anime-entry {
+        display: flex;
+        align-items: center;
+        background: rgba(255, 255, 255, 0.08);
+        padding: 10px;
+        margin-bottom: 10px;
+        border-radius: 12px;
+        transition: background 0.3s ease;
+      }
+
+      .anime-entry:hover {
+        background: rgba(255, 255, 255, 0.15);
+      }
+
+      .anime-entry img {
+        width: 60px;
+        height: 90px;
+        object-fit: cover;
+        border-radius: 8px;
+        margin-right: 12px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+        transition: transform 0.3s ease;
+      }
+
+      .anime-entry:hover img {
+        transform: scale(1.05);
+      }
+
+      .anime-info {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+      }
+
+      .anime-info a {
+        color: inherit;
+        text-decoration: none;
+        font-weight: bold;
+        font-size: 1.1em;
+        margin-bottom: 6px;
+      }
+
+      .anime-info a:hover {
+        text-decoration: underline;
+      }
+
+      .anime-info .episode-info {
+        font-size: 0.85em;
+        color: inherit;
+      }
+
+      .status-up-to-date,
+      .status-late {
+        font-size: 0.8em;
+        font-weight: bold;
+        margin-top: 2px;
+      }
+
+      body.theme-dark .status-up-to-date {
+        color: #00ff88;
+      }
+      body.theme-dark .status-late {
+        color: #ff5555;
+      }
+
+      body.theme-light .status-up-to-date {
+        color: #007744;
+      }
+      body.theme-light .status-late {
+        color: #cc3333;
+      }
+
+      body.theme-neon .status-up-to-date {
+        color: #00ffd5;
+      }
+      body.theme-neon .status-late {
+        color: #ff00a8;
+      }
+
+      body.theme-neo .status-up-to-date {
+        color: #66ffcc;
+      }
+      body.theme-neo .status-late {
+        color: #ff6688;
+      }
+
+      body.theme-neon a,
+      body.theme-neon header {
+        text-shadow: 0 0 8px #00ffff;
+      }
+
+      #settingsPanel {
+        position: absolute;
+        bottom: 10px;
+        right: 10px;
+        width: 280px;
+        background: rgba(0, 0, 0, 0.8);
+        backdrop-filter: blur(10px);
+        border-radius: 12px;
+        padding: 15px;
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+        z-index: 999;
+        font-size: 0.9em;
+        color: #fff;
+      }
+
+      #settingsPanel .panel-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 10px;
+      }
+
+      #settingsPanel button#closeSettingsBtn {
+        background: none;
+        border: none;
+        color: inherit;
+        font-size: 1em;
+        cursor: pointer;
+      }
+
+      #settingsPanel select,
+      #settingsPanel input[type="checkbox"] {
+        width: 100%;
+        margin: 6px 0 12px;
+        padding: 6px;
+        border-radius: 6px;
+        border: none;
+        background: #eee;
+        font-size: 0.9em;
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <div id="title">Prochains épisodes</div>
+      <div class="window-buttons">
+        <button id="minimizeBtn">-</button>
+        <button id="toggleTopBtn">⇅</button>
+        <button id="closeBtn">x</button>
+        <button id="menuToggleBtn">≡</button>
+      </div>
+    </header>
+
+    <div class="controls-secondary" style="display: none">
+      <button class="action" id="refreshBtn">Rafraîchir</button>
+      <button class="action" id="logoutBtn">Déconnexion</button>
+      <button class="action" id="themeBtn">Thème</button>
+      <button class="action" id="settingsBtn">Paramètres</button>
+    </div>
+
+    <div id="status">Chargement en cours...</div>
+
+    <div id="animeList"></div>
+
+    <div id="settingsPanel" style="display: none">
+      <div class="panel-header">
+        <span>Paramètres</span>
+        <button id="closeSettingsBtn">x</button>
+      </div>
+      <div class="panel-content">
+        <label>Thème par défaut :</label>
+        <select id="defaultTheme">
+          <option value="0">Dark</option>
+          <option value="1">Light</option>
+          <option value="2">Neon</option>
+          <option value="3">Neo</option>
+        </select>
+
+        <label>Fréquence rafraîchissement :</label>
+        <select id="refreshRate">
+          <option value="1800000">30 minutes</option>
+          <option value="3600000">1 heure</option>
+          <option value="7200000">2 heures</option>
+        </select>
+
+        <label>
+          <input type="checkbox" id="alwaysOnTop" /> Toujours au-dessus
+        </label>
+      </div>
+    </div>
+    <script>
+      const themes = ["theme-dark", "theme-light", "theme-neon", "theme-neo"];
+      let currentTheme = 0;
+      let refreshInterval;
+
+      function applyTheme(index) {
+        document.body.classList.remove(...themes);
+        document.body.classList.add(themes[index]);
+        localStorage.setItem("selected_theme", index);
+      }
+
+      async function openAuthWindow() {
+        try {
+          const token = await window.electron.ipcInvoke("open-auth-window");
+          localStorage.setItem("anilist_token", token);
+          location.reload();
+        } catch (e) {
+          document.getElementById("status").textContent =
+            "Échec connexion Anilist.";
+        }
+      }
+
+      async function fetchData() {
+        const statusEl = document.getElementById("status");
+        const listEl = document.getElementById("animeList");
+        statusEl.textContent = "Mise à jour...";
+
+        try {
+          const token = localStorage.getItem("anilist_token");
+          if (!token) {
+            await openAuthWindow();
+            return;
+          }
+
+          const viewerRes = await fetch("https://graphql.anilist.co", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: "Bearer " + token,
+            },
+            body: JSON.stringify({ query: `query { Viewer { id } }` }),
+          });
+
+          const viewerData = await viewerRes.json();
+          const userId = viewerData.data.Viewer.id;
+
+          const listRes = await fetch("https://graphql.anilist.co", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: "Bearer " + token,
+            },
+            body: JSON.stringify({
+              query: `query ($userId: Int) {
+          MediaListCollection(userId: $userId, type: ANIME, status: CURRENT) {
+            lists {
+              entries {
+                progress
+                media {
+                  title { romaji }
+                  siteUrl
+                  status
+                  nextAiringEpisode { airingAt episode }
+                  coverImage { medium }
+                }
+              }
+            }
+          }
+        }`,
+              variables: { userId },
+            }),
+          });
+
+          const listData = await listRes.json();
+          let entries = [];
+          const lists = listData.data.MediaListCollection.lists;
+          for (const l of lists) {
+            if (l && l.entries) entries = entries.concat(l.entries);
+          }
+
+          entries = entries.filter(
+            (e) =>
+              e.media &&
+              e.media.nextAiringEpisode &&
+              e.media.status === "RELEASING"
+          );
+          entries.sort(
+            (a, b) =>
+              a.media.nextAiringEpisode.airingAt -
+              b.media.nextAiringEpisode.airingAt
+          );
+
+          listEl.innerHTML = "";
+          if (entries.length === 0) {
+            listEl.innerHTML = "<p>Aucun épisode prévu.</p>";
+          } else {
+            entries.forEach((entry) => {
+              const div = document.createElement("div");
+              div.className = "anime-entry";
+
+              const img = document.createElement("img");
+              img.src = entry.media.coverImage.medium;
+              div.appendChild(img);
+
+              const info = document.createElement("div");
+              info.className = "anime-info";
+
+              const a = document.createElement("a");
+              a.href = entry.media.siteUrl;
+              a.textContent = entry.media.title.romaji;
+              a.addEventListener("click", (e) => {
+                e.preventDefault();
+                window.electron.ipcInvoke("open-link", a.href);
+              });
+              info.appendChild(a);
+
+              const span = document.createElement("span");
+              span.className = "episode-info";
+              const dateStr = new Date(
+                entry.media.nextAiringEpisode.airingAt * 1000
+              ).toLocaleString("fr-FR", {
+                weekday: "short",
+                day: "numeric",
+                month: "short",
+                hour: "2-digit",
+                minute: "2-digit",
+              });
+              span.textContent = `Épisode ${entry.media.nextAiringEpisode.episode} – ${dateStr}`;
+              info.appendChild(span);
+
+              const aired = entry.media.nextAiringEpisode.episode - 1;
+              const seen = entry.progress ?? 0;
+              const diff = aired - seen;
+
+              const status = document.createElement("span");
+              status.className =
+                diff <= 0 ? "status-up-to-date" : "status-late";
+              status.textContent =
+                diff <= 0
+                  ? "À jour"
+                  : `${diff} épisode${diff > 1 ? "s" : ""} de retard`;
+              info.appendChild(status);
+
+              div.appendChild(info);
+              listEl.appendChild(div);
+            });
+          }
+
+          statusEl.textContent =
+            "Mis à jour : " + new Date().toLocaleTimeString("fr-FR");
+        } catch (error) {
+          console.error(error);
+          listEl.innerHTML = "<p><em>Erreur de chargement.</em></p>";
+          statusEl.textContent = error.message;
+        }
+      }
+
+      document.addEventListener("DOMContentLoaded", () => {
+        const savedTheme = localStorage.getItem("selected_theme");
+        if (savedTheme !== null) {
+          currentTheme = parseInt(savedTheme);
+          applyTheme(currentTheme);
+          document.getElementById("defaultTheme").value = savedTheme;
+        } else {
+          applyTheme(0);
+        }
+
+        const delay = parseInt(localStorage.getItem("refresh_rate") || 3600000);
+        document.getElementById("refreshRate").value = delay;
+        refreshInterval = setInterval(fetchData, delay);
+
+        const top = localStorage.getItem("always_on_top") === "true";
+        document.body.dataset.top = top;
+        document.getElementById("alwaysOnTop").checked = top;
+        window.electron.ipcInvoke("set-always-on-top", top);
+
+        document.getElementById("settingsBtn").addEventListener("click", () => {
+          document.getElementById("settingsPanel").style.display = "block";
+        });
+        document
+          .getElementById("closeSettingsBtn")
+          .addEventListener("click", () => {
+            document.getElementById("settingsPanel").style.display = "none";
+          });
+
+        document
+          .getElementById("defaultTheme")
+          .addEventListener("change", (e) => {
+            applyTheme(parseInt(e.target.value));
+          });
+
+        document
+          .getElementById("refreshRate")
+          .addEventListener("change", (e) => {
+            localStorage.setItem("refresh_rate", e.target.value);
+            clearInterval(refreshInterval);
+            refreshInterval = setInterval(fetchData, parseInt(e.target.value));
+          });
+
+        document
+          .getElementById("alwaysOnTop")
+          .addEventListener("change", (e) => {
+            const val = e.target.checked;
+            localStorage.setItem("always_on_top", val);
+            window.electron.ipcInvoke("set-always-on-top", val);
+          });
+
+        document
+          .getElementById("menuToggleBtn")
+          .addEventListener("click", () => {
+            const controls = document.querySelector(".controls-secondary");
+            controls.style.display =
+              controls.style.display === "none" ? "flex" : "none";
+          });
+
+        document.getElementById("themeBtn").addEventListener("click", () => {
+          currentTheme = (currentTheme + 1) % themes.length;
+          applyTheme(currentTheme);
+        });
+
+        document
+          .getElementById("refreshBtn")
+          .addEventListener("click", fetchData);
+        document.getElementById("logoutBtn").addEventListener("click", () => {
+          localStorage.removeItem("anilist_token");
+          location.reload();
+        });
+
+        document.getElementById("closeBtn").addEventListener("click", () => {
+          window.electron.ipcInvoke("close-app");
+        });
+
+        document
+          .getElementById("toggleTopBtn")
+          .addEventListener("click", () => {
+            const isTop = document.body.dataset.top === "true";
+            window.electron.ipcInvoke("set-always-on-top", !isTop);
+            document.body.dataset.top = (!isTop).toString();
+          });
+
+        document.getElementById("minimizeBtn").addEventListener("click", () => {
+          window.electron.ipcInvoke("minimize-app");
+        });
+
+        fetchData();
+      });
+    </script>
+  </body>
+</html>

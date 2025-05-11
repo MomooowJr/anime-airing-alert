@@ -1,34 +1,23 @@
 const { app, BrowserWindow, ipcMain, shell, Tray, Menu } = require('electron');
 const path = require('path');
+const Store = require('electron-store');
 
 let mainWindow;
-let authWindow;
 let tray;
-
-const gotTheLock = app.requestSingleInstanceLock();
-if (!gotTheLock) {
-  app.quit();
-} else {
-  app.on('second-instance', () => {
-    if (mainWindow) {
-      if (mainWindow.isMinimized()) mainWindow.restore();
-      mainWindow.show();
-    }
-  });
-}
+const store = new Store();
 
 function createMainWindow() {
   mainWindow = new BrowserWindow({
-    width: 400,
-    height: 500,
+    width: store.get('windowWidth', 400),
+    height: store.get('windowHeight', 500),
+    minWidth: 240,
+    minHeight: 250,
+	icon: path.join(__dirname, 'assets', 'icons', 'icon_64.png'),
     frame: false,
     transparent: true,
-    resizable: false,
-    hasShadow: true,
-    skipTaskbar: false,
+    resizable: true,
     vibrancy: 'ultra-dark',
-    alwaysOnTop: true,
-    icon: path.join(__dirname, 'assets', 'icons', 'icon_64.png'),
+    alwaysOnTop: store.get('alwaysOnTop', true),
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
@@ -38,125 +27,108 @@ function createMainWindow() {
 
   mainWindow.loadFile('index.html');
 
-  ipcMain.handle('open-link', (event, url) => {
-    shell.openExternal(url);
-  });
-
-  ipcMain.handle('set-always-on-top', (event, flag) => {
-    mainWindow.setAlwaysOnTop(flag);
-  });
-
-  ipcMain.handle('close-app', () => {
-    console.log("🔕 Demande de hide fenêtre (close-app)");
-    mainWindow.hide();
-  });
-
-  ipcMain.handle('minimize-app', () => {
-    mainWindow.minimize();
-  });
-
-  ipcMain.handle('force-quit', () => {
-    console.log("📤 Quit demandé (force)");
-    app.isQuitting = true;
-    if (tray) tray.destroy();
-    app.quit();
-  });
-
-  ipcMain.handle('open-auth-window', async () => {
-    return new Promise((resolve, reject) => {
-      authWindow = new BrowserWindow({
-        width: 500,
-        height: 600,
-        show: true,
-        webPreferences: {
-          nodeIntegration: false,
-          contextIsolation: true
-        }
-      });
-
-      authWindow.loadURL('https://anilist.co/api/v2/oauth/authorize?client_id=16950&response_type=token');
-
-      authWindow.webContents.on('will-redirect', (event, url) => {
-        if (url.includes('access_token=')) {
-          const tokenMatch = url.match(/access_token=([^&]+)/);
-          if (tokenMatch) {
-            resolve(tokenMatch[1]);
-            authWindow.close();
-          }
-        }
-      });
-
-      authWindow.on('closed', () => {
-        reject(new Error('Fenêtre de connexion fermée sans autorisation'));
-      });
-    });
+  // Save window size on resize
+  mainWindow.on('resize', () => {
+    const [width, height] = mainWindow.getSize();
+    store.set('windowWidth', width);
+    store.set('windowHeight', height);
   });
 
   mainWindow.on('close', (e) => {
-    if (!app.isQuitting) {
+    if (!app.isQuiting) {
       e.preventDefault();
-      console.log("🧊 Fenêtre cachée (pas fermée)");
       mainWindow.hide();
-    } else {
-      console.log("🔚 Fermeture réelle autorisée");
     }
+    return false;
   });
 
-  setupTray();
+  mainWindow.on('closed', () => {
+    mainWindow = null;
+  });
 }
 
 function setupTray() {
   const iconPath = path.join(__dirname, 'assets', 'icons', 'icon_64.png');
+  tray = new Tray(iconPath);
 
-  try {
-    tray = new Tray(iconPath);
-    console.log("✅ Icône de tray chargée :", iconPath);
-
-    const contextMenu = Menu.buildFromTemplate([
-      { label: 'Afficher', click: () => mainWindow.show() },
-      { type: 'separator' },
-      {
-        label: 'Quitter', click: () => {
-          console.log("❌ Quit via systray");
-          app.isQuitting = true;
-          if (tray) tray.destroy();
-          app.quit();
-        }
+  const contextMenu = Menu.buildFromTemplate([
+    { label: 'Afficher', click: () => mainWindow.show() },
+    { type: 'separator' },
+    {
+      label: 'Quitter',
+      click: () => {
+        app.isQuiting = true;
+        tray.destroy();
+        app.quit();
       }
-    ]);
+    }
+  ]);
 
-    tray.setToolTip('Anime Airing Alert');
-    tray.setContextMenu(contextMenu);
+  tray.setToolTip('Anime Airing Alert');
+  tray.setContextMenu(contextMenu);
 
-    tray.on('double-click', () => {
-      mainWindow.show();
-    });
-
-  } catch (err) {
-    console.error("❌ Impossible de charger l’icône tray :", err.message);
-  }
+  tray.on('double-click', () => {
+    mainWindow.show();
+  });
 }
 
-app.on('before-quit', () => {
-  console.log("💀 before-quit déclenché");
-  if (tray) tray.destroy();
+ipcMain.handle('open-link', (event, url) => {
+  shell.openExternal(url);
 });
 
-app.on('quit', () => {
-  console.log("💥 App quit triggered");
+ipcMain.handle('set-always-on-top', (event, flag) => {
+  mainWindow.setAlwaysOnTop(flag);
+  store.set('alwaysOnTop', flag);
+});
+
+ipcMain.handle('close-app', () => {
+  if (mainWindow) mainWindow.hide(); // 👈 on cache au lieu de quitter
+});
+
+ipcMain.handle('minimize-app', () => {
+  if (mainWindow) mainWindow.minimize();
+});
+
+ipcMain.handle('open-auth-window', async () => {
+  return new Promise((resolve, reject) => {
+    const authWindow = new BrowserWindow({
+      width: 500,
+      height: 600,
+      show: true,
+      parent: mainWindow,
+      modal: true,
+      webPreferences: {
+        nodeIntegration: false,
+        contextIsolation: true
+      }
+    });
+
+    const authUrl = 'https://anilist.co/api/v2/oauth/authorize?client_id=16950&response_type=token';
+    authWindow.loadURL(authUrl);
+
+    authWindow.webContents.on('will-redirect', (event, url) => {
+      if (url.includes('access_token=')) {
+        const tokenMatch = url.match(/access_token=([^&]+)/);
+        if (tokenMatch) {
+          resolve(tokenMatch[1]);
+          authWindow.close();
+        }
+      }
+    });
+
+    authWindow.on('closed', () => {
+      reject(new Error('Fenêtre de connexion fermée sans autorisation'));
+    });
+  });
 });
 
 app.whenReady().then(() => {
   createMainWindow();
-
-  app.setLoginItemSettings({
-    openAtLogin: true,
-    path: process.execPath
-  });
+  setupTray();
 });
 
 app.on('window-all-closed', () => {
-  // On ne ferme rien, car on utilise systray
+  if (process.platform !== 'darwin') app.quit();
 });
 
 app.on('activate', () => {

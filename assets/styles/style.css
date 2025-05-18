@@ -256,6 +256,12 @@ body.theme-neo #settingsPanel {
   font-size: 0.7em;
 }
 
+#settingsPanel input[type="checkbox"] {
+  margin-right: 8px;
+}
+
+
+
 /* Compact mode: anime title smaller */
 body.compact .anime-info a {
   font-size: 0.85em !important;

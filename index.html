@@ -36,7 +36,9 @@
         <button id="closeSettingsBtn">x</button>
       </div>
       <div class="panel-content">
-        <label id="labelLanguage" for="languageSelect">Langue / Language :</label>
+        <label id="labelLanguage" for="languageSelect"
+          >Langue / Language :</label
+        >
         <select id="languageSelect">
           <option value="fr">Français</option>
           <option value="en">English</option>
@@ -56,6 +58,11 @@
           <option value="3600000">1 heure</option>
           <option value="7200000">2 heures</option>
         </select>
+
+        <label>
+          <input type="checkbox" id="truncateTitle" />
+          Tronquer les titres longs
+        </label>
 
         <label id="labelTop">
           <input type="checkbox" id="alwaysOnTop" /> Toujours au-dessus

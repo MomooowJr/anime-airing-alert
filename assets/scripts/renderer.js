@@ -1,6 +1,6 @@
-import { openAuthWindow } from './modules/auth.js';
-import { applyTheme, applyResponsiveLayout } from './modules/utils.js';
-import { setupSettings } from './modules/settings.js';
+import { openAuthWindow } from "./modules/auth.js";
+import { applyTheme, applyResponsiveLayout } from "./modules/utils.js";
+import { setupSettings } from "./modules/settings.js";
 
 const translations = {
   fr: {
@@ -19,7 +19,7 @@ const translations = {
     labelLanguage: "Langue / Language :",
     labelTheme: "Thème par défaut :",
     labelRefresh: "Fréquence de rafraîchissement :",
-    labelTop: "Toujours au-dessus"
+    labelTop: "Toujours au-dessus",
   },
   en: {
     title: "Upcoming Episodes",
@@ -37,13 +37,15 @@ const translations = {
     labelLanguage: "Language:",
     labelTheme: "Default theme:",
     labelRefresh: "Refresh rate:",
-    labelTop: "Always on top"
-  }
+    labelTop: "Always on top",
+  },
 };
 
 let lang = localStorage.getItem("lang") || "fr";
 let currentTheme = parseInt(localStorage.getItem("selected_theme")) || 0;
 let refreshInterval;
+
+let truncateTitles = localStorage.getItem("truncate_title") === "true";
 
 function applyTranslations() {
   const t = translations[lang];
@@ -56,7 +58,8 @@ function applyTranslations() {
   document.getElementById("labelTheme").textContent = t.labelTheme;
   document.getElementById("labelRefresh").textContent = t.labelRefresh;
   document.getElementById("labelTop").lastChild.textContent = " " + t.labelTop;
-  document.querySelector("#settingsPanel .panel-header span").textContent = t.settingsTitle;
+  document.querySelector("#settingsPanel .panel-header span").textContent =
+    t.settingsTitle;
 }
 
 async function fetchData() {
@@ -71,15 +74,21 @@ async function fetchData() {
 
     const viewerData = await fetch("https://graphql.anilist.co", {
       method: "POST",
-      headers: { "Content-Type": "application/json", Authorization: "Bearer " + token },
-      body: JSON.stringify({ query: `query { Viewer { id } }` })
-    }).then(r => r.json());
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: "Bearer " + token,
+      },
+      body: JSON.stringify({ query: `query { Viewer { id } }` }),
+    }).then((r) => r.json());
 
     const userId = viewerData.data.Viewer.id;
 
     const listData = await fetch("https://graphql.anilist.co", {
       method: "POST",
-      headers: { "Content-Type": "application/json", Authorization: "Bearer " + token },
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: "Bearer " + token,
+      },
       body: JSON.stringify({
         query: `query ($userId: Int) {
           MediaListCollection(userId: $userId, type: ANIME, status: CURRENT) {
@@ -97,20 +106,27 @@ async function fetchData() {
             }
           }
         }`,
-        variables: { userId }
-      })
-    }).then(r => r.json());
+        variables: { userId },
+      }),
+    }).then((r) => r.json());
 
-    let entries = listData.data.MediaListCollection.lists.flatMap(l => l.entries);
-    entries = entries.filter(e => e.media?.nextAiringEpisode && e.media.status === "RELEASING");
-    entries.sort((a, b) => a.media.nextAiringEpisode.airingAt - b.media.nextAiringEpisode.airingAt);
+    let entries = listData.data.MediaListCollection.lists.flatMap(
+      (l) => l.entries
+    );
+    entries = entries.filter(
+      (e) => e.media?.nextAiringEpisode && e.media.status === "RELEASING"
+    );
+    entries.sort(
+      (a, b) =>
+        a.media.nextAiringEpisode.airingAt - b.media.nextAiringEpisode.airingAt
+    );
 
     listEl.innerHTML = "";
 
     if (entries.length === 0) {
       listEl.innerHTML = "<p>Aucun épisode prévu.</p>";
     } else {
-      entries.forEach(entry => {
+      entries.forEach((entry) => {
         const div = document.createElement("div");
         div.className = "anime-entry";
 
@@ -123,8 +139,14 @@ async function fetchData() {
 
         const a = document.createElement("a");
         a.href = entry.media.siteUrl;
-        a.textContent = entry.media.title.romaji;
-        a.addEventListener("click", e => {
+
+        const fullTitle = entry.media.title.romaji;
+        a.textContent =
+          truncateTitles && fullTitle.length > 30
+            ? fullTitle.slice(0, 30) + "..."
+            : fullTitle;
+
+        a.addEventListener("click", (e) => {
           e.preventDefault();
           window.electron.ipcInvoke("open-link", a.href);
         });
@@ -132,10 +154,15 @@ async function fetchData() {
 
         const span = document.createElement("span");
         span.className = "episode-info";
-        const dateStr = new Date(entry.media.nextAiringEpisode.airingAt * 1000).toLocaleString(
-          lang === "fr" ? "fr-FR" : "en-US",
-          { weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }
-        );
+        const dateStr = new Date(
+          entry.media.nextAiringEpisode.airingAt * 1000
+        ).toLocaleString(lang === "fr" ? "fr-FR" : "en-US", {
+          weekday: "short",
+          day: "numeric",
+          month: "short",
+          hour: "2-digit",
+          minute: "2-digit",
+        });
         span.textContent = `Ep. ${entry.media.nextAiringEpisode.episode} – ${dateStr}`;
         info.appendChild(span);
 
@@ -152,7 +179,9 @@ async function fetchData() {
       });
     }
 
-    statusEl.textContent = t.statusUpdatedAt(new Date().toLocaleTimeString(lang === "fr" ? "fr-FR" : "en-US"));
+    statusEl.textContent = t.statusUpdatedAt(
+      new Date().toLocaleTimeString(lang === "fr" ? "fr-FR" : "en-US")
+    );
   } catch (error) {
     console.error(error);
     listEl.innerHTML = `<p><em>${translations[lang].statusError}</em></p>`;
@@ -166,12 +195,26 @@ document.addEventListener("DOMContentLoaded", () => {
   applyTranslations();
   setupSettings(lang, translations, fetchData);
 
-  refreshInterval = setInterval(fetchData, parseInt(localStorage.getItem("refresh_rate") || 3600000));
+  // Charger état du checkbox
+  document.getElementById("truncateTitle").checked = truncateTitles;
+
+  // Sur changement utilisateur
+  document.getElementById("truncateTitle").addEventListener("change", (e) => {
+    truncateTitles = e.target.checked;
+    localStorage.setItem("truncate_title", truncateTitles);
+    fetchData();
+  });
+
+  refreshInterval = setInterval(
+    fetchData,
+    parseInt(localStorage.getItem("refresh_rate") || 3600000)
+  );
   window.refreshInterval = refreshInterval;
 
   document.getElementById("menuToggleBtn").addEventListener("click", () => {
     const controls = document.querySelector(".controls-secondary");
-    controls.style.display = controls.style.display === "none" ? "flex" : "none";
+    controls.style.display =
+      controls.style.display === "none" ? "flex" : "none";
   });
 
   document.getElementById("settingsBtn").addEventListener("click", () => {
@@ -212,4 +255,4 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 
 window.addEventListener("resize", applyResponsiveLayout);
-window.addEventListener('DOMContentLoaded', applyResponsiveLayout);
+window.addEventListener("DOMContentLoaded", applyResponsiveLayout);

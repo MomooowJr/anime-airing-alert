@@ -1,8 +1,8 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="fr">
   <head>
     <meta charset="UTF-8" />
-    <title>Prochains épisodes</title>
+    <title>Prochains &eacute;pisodes</title>
     <link
       href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap"
       rel="stylesheet"
@@ -11,62 +11,78 @@
   </head>
   <body>
     <header>
-      <div id="title">Prochains épisodes</div>
-      <div class="window-buttons">
-        <button id="minimizeBtn">-</button>
-        <button id="toggleTopBtn">⇅</button>
-        <button id="closeBtn">x</button>
-        <button id="menuToggleBtn">≡</button>
+      <div id="title">Prochains &eacute;pisodes</div>
+      <div class="header-actions">
+        <button class="icon-btn" id="refreshBtn">&#8635;</button>
+        <button class="icon-btn" id="minimizeBtn">-</button>
+        <button class="icon-btn" id="toggleTopBtn">&#9195;</button>
+        <button class="icon-btn close" id="closeBtn">&times;</button>
+        <button class="icon-btn" id="settingsBtn">&#9881;</button>
       </div>
     </header>
-
-    <div class="controls-secondary" style="display: none">
-      <button class="action" id="refreshBtn">Rafraîchir</button>
-      <button class="action" id="logoutBtn">Déconnexion</button>
-      <button class="action" id="themeBtn">Thème</button>
-      <button class="action" id="settingsBtn">Paramètres</button>
-    </div>
 
     <div id="status">Chargement en cours...</div>
     <div id="animeList"></div>
 
-    <div id="settingsPanel" style="display: none">
-      <div class="panel-header">
-        <span>Paramètres</span>
-        <button id="closeSettingsBtn">x</button>
-      </div>
-      <div class="panel-content">
-        <label id="labelLanguage" for="languageSelect"
-          >Langue / Language :</label
-        >
-        <select id="languageSelect">
-          <option value="fr">Français</option>
-          <option value="en">English</option>
-        </select>
+    <div id="settingsPanel" class="settings-overlay" style="display: none">
+      <div class="settings-card">
+        <div class="panel-header">
+          <span>Param&egrave;tres</span>
+          <button id="closeSettingsBtn">&times;</button>
+        </div>
+        <div class="panel-content">
+          <label id="labelLanguage" for="languageSelect">Langue / Language :</label>
+          <select id="languageSelect">
+            <option value="fr">Fran&ccedil;ais</option>
+            <option value="en">English</option>
+          </select>
 
-        <label id="labelTheme">Thème par défaut :</label>
-        <select id="defaultTheme">
-          <option value="0">Dark</option>
-          <option value="1">Light</option>
-          <option value="2">Neon</option>
-          <option value="3">Neo</option>
-        </select>
+          <label id="labelTheme">Th&egrave;me par d&eacute;faut :</label>
+          <select id="defaultTheme">
+            <option value="0">Dark</option>
+            <option value="1">Light</option>
+            <option value="2">Neon</option>
+            <option value="3">Neo</option>
+          </select>
 
-        <label id="labelRefresh">Fréquence de rafraîchissement :</label>
-        <select id="refreshRate">
-          <option value="1800000">30 minutes</option>
-          <option value="3600000">1 heure</option>
-          <option value="7200000">2 heures</option>
-        </select>
+          <label id="labelRefresh">Fr&eacute;quence de rafra&icirc;chissement :</label>
+          <select id="refreshRate">
+            <option value="1800000">30 minutes</option>
+            <option value="3600000">1 heure</option>
+            <option value="7200000">2 heures</option>
+          </select>
 
-        <label>
-          <input type="checkbox" id="truncateTitle" />
-          Tronquer les titres longs
-        </label>
+          <label id="labelSortBy">Trier par :</label>
+          <select id="sortBy">
+            <option value="name">Nom</option>
+            <option value="next">Prochain &eacute;pisode</option>
+            <option value="updated">Derni&egrave;re mise &agrave; jour</option>
+          </select>
 
-        <label id="labelTop">
-          <input type="checkbox" id="alwaysOnTop" /> Toujours au-dessus
-        </label>
+          <label id="labelSortOrder">Ordre :</label>
+          <select id="sortOrder">
+            <option value="asc">Croissant</option>
+            <option value="desc">D&eacute;croissant</option>
+          </select>
+
+          <div class="setting-row">
+            <div class="setting-label">Tronquer les titres longs</div>
+            <label class="switch">
+              <input type="checkbox" id="truncateTitle" />
+              <span class="slider"></span>
+            </label>
+          </div>
+
+          <div class="setting-row">
+            <div class="setting-label" id="labelTop">Toujours au-dessus</div>
+            <label class="switch">
+              <input type="checkbox" id="alwaysOnTop" />
+              <span class="slider"></span>
+            </label>
+          </div>
+
+          <button id="logoutBtn" class="danger-btn">D&eacute;connexion</button>
+        </div>
       </div>
     </div>
 

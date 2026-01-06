@@ -1,401 +1,478 @@
 ﻿import { openAuthWindow } from "./modules/auth.js";
-import { applyTheme, applyResponsiveLayout } from "./modules/utils.js";
-import { setupSettings } from "./modules/settings.js";
+import { applyTheme } from "./modules/utils.js";
 
-const translations = {
-  fr: {
-    title: "Prochains \u00e9pisodes",
-    refresh: "Rafra\u00eechir",
-    logout: "D\u00e9connexion",
-    theme: "Th\u00e8me",
-    settings: "Param\u00e8tres",
-    statusLoading: "Chargement en cours...",
-    statusUpdating: "Mise \u00e0 jour...",
-    statusError: "Erreur de chargement.",
-    statusUpdatedAt: (time) => "Mis \u00e0 jour : " + time,
-    upToDate: "\u00c0 jour",
-    late: (n) => `${n} \u00e9pisode${n > 1 ? "s" : ""} de retard`,
-    settingsTitle: "Param\u00e8tres",
-    labelLanguage: "Langue / Language :",
-    labelTheme: "Th\u00e8me par d\u00e9faut :",
-    labelRefresh: "Fr\u00e9quence de rafra\u00eechissement :",
-    labelTop: "Toujours au-dessus",
-    labelSortBy: "Trier par :",
-    labelSortOrder: "Ordre :",
-    sortName: "Nom",
-    sortNext: "Prochain \u00e9pisode",
-    sortUpdated: "Derni\u00e8re mise \u00e0 jour",
-    orderAsc: "Croissant",
-    orderDesc: "D\u00e9croissant",
-  },
-  en: {
-    title: "Upcoming Episodes",
-    refresh: "Refresh",
-    logout: "Logout",
-    theme: "Theme",
-    settings: "Settings",
-    statusLoading: "Loading...",
-    statusUpdating: "Updating...",
-    statusError: "Error while loading.",
-    statusUpdatedAt: (time) => "Updated at: " + time,
-    upToDate: "Up to date",
-    late: (n) => `${n} episode${n > 1 ? "s" : ""} behind`,
-    settingsTitle: "Settings",
-    labelLanguage: "Language:",
-    labelTheme: "Default theme:",
-    labelRefresh: "Refresh rate:",
-    labelTop: "Always on top",
-    labelSortBy: "Sort by:",
-    labelSortOrder: "Order:",
-    sortName: "Name",
-    sortNext: "Next episode",
-    sortUpdated: "Last updated",
-    orderAsc: "Ascending",
-    orderDesc: "Descending",
-  },
-};
-
+// --- CONFIG & STATE ---
 let lang = localStorage.getItem("lang") || "fr";
 let currentTheme = parseInt(localStorage.getItem("selected_theme")) || 0;
+let viewMode = localStorage.getItem("view_mode") || "list";
 let refreshInterval;
+let animeState = {}; // Stocke l'état local { [mediaId]: { progress, total, title... } }
+let fetchDebounceTimer;
+let isFetching = false;
 
-let truncateTitles = localStorage.getItem("truncate_title") === "true";
-let sortBy = localStorage.getItem("sort_by") || "next";
-let sortOrder = localStorage.getItem("sort_order") || "asc";
+// Textes
+const translations = {
+  fr: {
+    statusUpdating: "Sync...",
+    statusError: "Erreur",
+    late: (n) => `+${n}`,
+    upToDate: "À jour",
+    settingsTitle: "Paramètres",
+    logout: "Déconnexion",
+    labelTheme: "Thème",
+    labelLanguage: "Langue",
+    labelRefresh: "Fréquence",
+    labelSortBy: "Trier par",
+    labelSortOrder: "Ordre",
+    labelTop: "Toujours au-dessus",
+    labelTruncate: "Titres complets",
+    labelShowEp: "Afficher Épisode",
+    labelShowProgress: "Barre de progression",
+    labelImageSize: "Taille Images",
+    optSmall: "Petit",
+    optMedium: "Moyen",
+    optLarge: "Grand",
+    refreshing: "Rafraîchissement...",
+    lastUpdate: "Dernière màj : ",
+    // Options des listes déroulantes
+    opt30m: "30 minutes",
+    opt1h: "1 heure",
+    opt2h: "2 heures",
+    optSortNext: "Prochain épisode",
+    optSortUpdated: "Mise à jour",
+    optSortName: "Nom",
+    optOrderAsc: "Croissant",
+    optOrderDesc: "Décroissant"
+  },
+  en: {
+    statusUpdating: "Sync...",
+    statusError: "Error",
+    late: (n) => `+${n}`,
+    upToDate: "Up to date",
+    settingsTitle: "Settings",
+    logout: "Logout",
+    labelTheme: "Theme",
+    labelLanguage: "Language",
+    labelRefresh: "Interval",
+    labelSortBy: "Sort by",
+    labelSortOrder: "Order",
+    labelTop: "Always on top",
+    labelTruncate: "Full Titles",
+    labelShowEp: "Show Episode",
+    labelShowProgress: "Progress Bar",
+    labelImageSize: "Image Size",
+    optSmall: "Small",
+    optMedium: "Medium",
+    optLarge: "Large",
+    refreshing: "Refreshing...",
+    lastUpdate: "Last update: ",
+    // Options dei menus
+    opt30m: "30 minutes",
+    opt1h: "1 hour",
+    opt2h: "2 hours",
+    optSortNext: "Next episode",
+    optSortUpdated: "Updated",
+    optSortName: "Name",
+    optOrderAsc: "Ascending",
+    optOrderDesc: "Descending"
+  }
+};
 
-async function updateProgress(mediaId, currentProgress, delta) {
+// --- LOGIQUE D'AFFICHAGE ---
+function switchView(mode) {
+    viewMode = mode;
+    localStorage.setItem("view_mode", mode);
+    const main = document.getElementById("mainContent");
+    const listBtn = document.getElementById("viewListBtn");
+    const gridBtn = document.getElementById("viewGridBtn");
+    
+    main.classList.remove("view-list", "view-grid");
+    main.classList.add(`view-${mode}`);
+    
+    if(mode === 'list') {
+        listBtn.classList.add("active");
+        gridBtn.classList.remove("active");
+    } else {
+        listBtn.classList.remove("active");
+        gridBtn.classList.add("active");
+    }
+}
+
+async function updateProgress(mediaId, delta) {
   const token = localStorage.getItem("anilist_token");
   if (!token) return await openAuthWindow();
 
+  const state = animeState[mediaId];
+  if (!state) return;
+
+  const currentProgress = state.progress;
   const newProgress = Math.max(0, currentProgress + delta);
   if (newProgress === currentProgress) return;
 
-  const statusEl = document.getElementById("status");
-  const prevStatus = statusEl.textContent;
-  statusEl.textContent = translations[lang].statusUpdating;
+  // Optimistic Update
+  animeState[mediaId].progress = newProgress;
+  updateCardUI(mediaId);
+
+  // Background sync - no UI blocking text
+  // const statusEl = document.getElementById("status");
+  // statusEl.textContent = translations[lang].statusUpdating;
+  // statusEl.style.opacity = 1;
 
   try {
     await fetch("https://graphql.anilist.co", {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: "Bearer " + token,
-      },
+      headers: { "Content-Type": "application/json", Authorization: "Bearer " + token },
       body: JSON.stringify({
-        query: `mutation ($mediaId: Int, $progress: Int) {
-          SaveMediaListEntry(mediaId: $mediaId, progress: $progress) {
-            id
-            progress
-          }
-        }`,
+        query: `mutation ($mediaId: Int, $progress: Int) { SaveMediaListEntry(mediaId: $mediaId, progress: $progress) { id progress } }`,
         variables: { mediaId, progress: newProgress },
       }),
     });
-    await fetchData();
+    
+    // Debounce refresh
+    clearTimeout(fetchDebounceTimer);
+    fetchDebounceTimer = setTimeout(() => fetchData(false), 2000);
+
   } catch (error) {
-    console.error("Update progress error:", error);
-    statusEl.textContent = translations[lang].statusError;
-    setTimeout(() => (statusEl.textContent = prevStatus), 2000);
+    console.error(error);
+    // statusEl.textContent = translations[lang].statusError;
+    // Rollback on error
+    animeState[mediaId].progress = currentProgress;
+    updateCardUI(mediaId);
+  }
+  
+  // setTimeout(() => { statusEl.style.opacity = 0; }, 2000);
+}
+
+function updateCardUI(mediaId) {
+    const state = animeState[mediaId];
+    const card = document.getElementById(`anime-${mediaId}`);
+    if (!card || !state) return;
+
+    const displayTotal = state.total || state.released;
+    const diff = state.released - state.progress;
+    const progressPercent = Math.min(100, (state.progress / (displayTotal || 1)) * 100);
+    const t = translations[lang];
+
+    // Update Progress Bar
+    const bar = card.querySelector(".progress-bar");
+    bar.style.width = `${progressPercent}%`;
+    card.querySelector(".progress-bar-container").title = `Progression: ${state.progress}/${state.total || state.released}`;
+
+    // Update Episode Text & Badge
+    const footer = card.querySelector(".card-footer");
+    const epText = footer.querySelector(".current-ep-num");
+    if (epText) epText.textContent = `${state.progress}/${displayTotal || '?'}`;
+
+    const badge = footer.querySelector(".badge");
+    if (badge) {
+        badge.className = `badge ${diff > 0 ? 'late' : 'ok'}`;
+        badge.textContent = diff > 0 ? t.late(diff) : t.upToDate;
+    }
+}
+
+
+async function fetchData(isManual = false) {
+  const t = translations[lang];
+  const listEl = document.getElementById("animeList");
+  const loginSection = document.getElementById("loginSection");
+  const emptyState = document.getElementById("emptyState");
+  const token = localStorage.getItem("anilist_token");
+  const statusEl = document.getElementById("status");
+  const loadingLine = document.getElementById("loadingLine");
+  const lastUpdatedEl = document.getElementById("lastUpdated");
+
+  if (!token) {
+    loginSection.style.display = "flex";
+    emptyState.style.display = "none";
+    listEl.innerHTML = "";
+    return;
+  }
+  
+  loginSection.style.display = "none";
+
+  if (isManual) {
+      statusEl.textContent = t.refreshing;
+      statusEl.style.opacity = 1;
+      loadingLine.classList.add("active");
+      loadingLine.classList.remove("finished");
+      loadingLine.style.width = "50%"; // Fake progress
+  }
+
+  try {
+    if (isFetching) return;
+    isFetching = true;
+
+    const response = await fetch("https://graphql.anilist.co", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: "Bearer " + token },
+        body: JSON.stringify({ query: `query { Viewer { id } }` }),
+    });
+
+    if (response.status === 429) {
+        console.warn("Rate Limit Exceeded");
+        if(isManual) statusEl.textContent = "Rate Limit (Wait)";
+        isFetching = false;
+        loadingLine.classList.remove("active");
+        return;
+    }
+
+    const viewer = await response.json();
+    if(!viewer.data) throw new Error("Auth Error");
+
+    if (isManual) loadingLine.style.width = "80%";
+
+    const data = await fetch("https://graphql.anilist.co", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: "Bearer " + token },
+      body: JSON.stringify({
+        query: `query ($userId: Int) {
+          MediaListCollection(userId: $userId, type: ANIME, status: CURRENT) {
+            lists { entries { mediaId progress updatedAt media { id title { romaji } siteUrl status episodes nextAiringEpisode { airingAt episode } coverImage { large } } } }
+          }
+        }`,
+        variables: { userId: viewer.data.Viewer.id },
+      }),
+    }).then(r => r.json());
+
+    let entries = data.data.MediaListCollection.lists.flatMap(l => l.entries)
+      .filter(e => e.media.nextAiringEpisode && e.media.status === "RELEASING");
+
+    const sortBy = localStorage.getItem("sort_by") || "next";
+    const order = localStorage.getItem("sort_order") || "asc";
+    const dir = order === "asc" ? 1 : -1;
+
+    entries.sort((a, b) => {
+      if (sortBy === "name") return dir * a.media.title.romaji.localeCompare(b.media.title.romaji);
+      if (sortBy === "updated") return dir * ((a.updatedAt||0) - (b.updatedAt||0));
+      return dir * (a.media.nextAiringEpisode.airingAt - b.media.nextAiringEpisode.airingAt);
+    });
+
+    listEl.innerHTML = "";
+    
+    if (entries.length === 0) {
+        emptyState.style.display = "flex";
+    } else {
+        emptyState.style.display = "none";
+        entries.forEach(entry => {
+            const title = entry.media.title.romaji;
+            const isWrap = localStorage.getItem("wrap_titles") !== "false";
+            const displayTitle = (!isWrap && title.length > 19) ? title.substring(0, 19) + "..." : title;
+            
+            const episode = entry.media.nextAiringEpisode.episode;
+            const date = new Date(entry.media.nextAiringEpisode.airingAt * 1000)
+                .toLocaleDateString(lang, {weekday:'short', hour:'2-digit', minute:'2-digit'});
+                        const progress = entry.progress || 0;
+            const released = episode - 1;
+            const diff = released - progress;
+            const totalEps = entry.media.episodes;
+            const displayTotal = totalEps || released;
+            const progressPercent = Math.min(100, (progress / (displayTotal || 1)) * 100);
+
+            // Update State
+            animeState[entry.mediaId] = {
+                progress: progress,
+                total: totalEps,
+                released: released,
+                next: episode
+            };
+
+            const card = document.createElement("div");
+            card.className = "anime-card";
+            card.id = `anime-${entry.mediaId}`;
+            card.innerHTML = `
+                <img src="${entry.media.coverImage.large}" class="anime-cover" alt="cover">
+                <div class="anime-details">
+                    <a href="#" class="anime-title" title="${title}">${displayTitle}</a>
+                    <div class="anime-meta">
+                        <span class="episode-info">Ep. ${episode} • ${date}</span>
+                    </div>
+                    <div class="progress-bar-container" title="Progression: ${progress}/${totalEps || released}">
+                        <div class="progress-bar" style="width: ${progressPercent}%"></div>
+                    </div>
+                    <div class="card-footer">
+                        <div class="progress-info">
+                            <div class="current-ep-num">${progress}/${displayTotal || '?'}</div>
+                            <div class="badge ${diff > 0 ? 'late' : 'ok'}">${diff > 0 ? t.late(diff) : t.upToDate}</div>
+                        </div>
+                        <div class="actions">
+                             <button class="btn-action dec">−</button>
+                             <button class="btn-action inc">+</button>
+                        </div>
+                    </div>
+                </div>`;
+
+            // Listeners
+            const openLink = (e) => { 
+                e.preventDefault(); 
+                e.stopPropagation(); 
+                window.electron.ipcInvoke("open-link", entry.media.siteUrl); 
+            };
+            
+            card.addEventListener("click", openLink);
+            card.querySelector(".dec").addEventListener("click", (e) => { e.stopPropagation(); updateProgress(entry.mediaId, -1); });
+            card.querySelector(".inc").addEventListener("click", (e) => { e.stopPropagation(); updateProgress(entry.mediaId, 1); });
+            listEl.appendChild(card);
+        });
+    }
+
+    // Success Update
+    const now = new Date().toLocaleTimeString(lang, { hour: '2-digit', minute: '2-digit' });
+    lastUpdatedEl.textContent = t.lastUpdate + now;
+
+  } catch (e) { 
+      console.error(e); 
+      if(isManual) statusEl.textContent = t.statusError;
+  } finally { 
+      isFetching = false; 
+      if (isManual) {
+          loadingLine.style.width = "100%";
+          setTimeout(() => {
+              statusEl.style.opacity = 0;
+              loadingLine.classList.add("finished");
+              loadingLine.classList.remove("active");
+              loadingLine.style.width = "0%";
+          }, 500);
+      }
   }
 }
 
 function applyTranslations() {
-  const t = translations[lang];
-  document.getElementById("title").textContent = t.title;
-  document.getElementById("refreshBtn").title = t.refresh;
-  document.getElementById("settingsBtn").title = t.settings;
-  document.getElementById("logoutBtn").textContent = t.logout;
-  document.getElementById("labelLanguage").textContent = t.labelLanguage;
-  document.getElementById("labelTheme").textContent = t.labelTheme;
-  document.getElementById("labelRefresh").textContent = t.labelRefresh;
-  document.getElementById("labelTop").textContent = t.labelTop;
-  document.querySelector("#settingsPanel .panel-header span").textContent =
-    t.settingsTitle;
-  document.getElementById("labelSortBy").textContent = t.labelSortBy;
-  document.getElementById("labelSortOrder").textContent = t.labelSortOrder;
-  document.querySelector("#sortBy option[value='name']").textContent = t.sortName;
-  document.querySelector("#sortBy option[value='next']").textContent = t.sortNext;
-  document.querySelector("#sortBy option[value='updated']").textContent =
-    t.sortUpdated;
-  document.querySelector("#sortOrder option[value='asc']").textContent = t.orderAsc;
-  document.querySelector("#sortOrder option[value='desc']").textContent =
-    t.orderDesc;
+    const t = translations[lang];
+    const setText = (id, txt) => { const el = document.getElementById(id); if(el) el.textContent = txt; };
+    setText("settingsTitle", t.settingsTitle);
+    setText("logoutBtn", t.logout);
+    setText("labelTheme", t.labelTheme);
+    setText("labelLanguage", t.labelLanguage);
+    setText("labelRefresh", t.labelRefresh);
+    setText("labelSortBy", t.labelSortBy);
+    setText("labelSortOrder", t.labelSortOrder);
+    setText("labelTop", t.labelTop);
+    setText("labelTruncate", t.labelTruncate);
+    setText("labelShowEp", t.labelShowEp);
+    setText("labelShowProgress", t.labelShowProgress);
+    setText("labelImageSize", t.labelImageSize);
+    setText("optSmall", t.optSmall);
+    setText("optMedium", t.optMedium);
+    setText("optLarge", t.optLarge);
+
+    // Nouvelles traductions pour les menus déroulants
+    setText("opt30m", t.opt30m);
+    setText("opt1h", t.opt1h);
+    setText("opt2h", t.opt2h);
+    setText("optSortNext", t.optSortNext);
+    setText("optSortUpdated", t.optSortUpdated);
+    setText("optSortName", t.optSortName);
+    setText("optOrderAsc", t.optOrderAsc);
+    setText("optOrderDesc", t.optOrderDesc);
 }
 
-async function fetchData() {
-  const t = translations[lang];
-  const statusEl = document.getElementById("status");
-  const listEl = document.getElementById("animeList");
-  statusEl.textContent = t.statusUpdating;
-
-  try {
-    const token = localStorage.getItem("anilist_token");
-    if (!token) return await openAuthWindow();
-
-    const viewerData = await fetch("https://graphql.anilist.co", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: "Bearer " + token,
-      },
-      body: JSON.stringify({ query: `query { Viewer { id } }` }),
-    }).then((r) => r.json());
-
-    const userId = viewerData.data.Viewer.id;
-
-    const listData = await fetch("https://graphql.anilist.co", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: "Bearer " + token,
-      },
-      body: JSON.stringify({
-        query: `query ($userId: Int) {
-          MediaListCollection(userId: $userId, type: ANIME, status: CURRENT) {
-            lists {
-              entries {
-                mediaId
-                progress
-                updatedAt
-                media {
-                  id
-                  title { romaji }
-                  siteUrl
-                  status
-                  episodes
-                  nextAiringEpisode { airingAt episode }
-                  coverImage { medium }
-                }
-              }
-            }
-          }
-        }`,
-        variables: { userId },
-      }),
-    }).then((r) => r.json());
-
-    let entries = listData.data.MediaListCollection.lists.flatMap(
-      (l) => l.entries
-    );
-    entries = entries.filter(
-      (e) => e.media?.nextAiringEpisode && e.media.status === "RELEASING"
-    );
-    const dir = sortOrder === "asc" ? 1 : -1;
-    entries.sort((a, b) => {
-      if (sortBy === "name") {
-        return (
-          dir *
-          a.media.title.romaji.localeCompare(b.media.title.romaji, undefined, {
-            sensitivity: "base",
-          })
-        );
-      }
-      if (sortBy === "updated") {
-        return dir * ((a.updatedAt || 0) - (b.updatedAt || 0));
-      }
-      // default: next airing date
-      return (
-        dir *
-        (a.media.nextAiringEpisode.airingAt - b.media.nextAiringEpisode.airingAt)
-      );
-    });
-
-    listEl.innerHTML = "";
-
-    if (entries.length === 0) {
-      listEl.innerHTML = "<p>Aucun \u00e9pisode pr\u00e9vu.</p>";
-    } else {
-      entries.forEach((entry) => {
-        const div = document.createElement("div");
-        div.className = "anime-entry";
-
-        const img = document.createElement("img");
-        img.src = entry.media.coverImage.medium;
-        div.appendChild(img);
-
-        const info = document.createElement("div");
-        info.className = "anime-info";
-
-        const a = document.createElement("a");
-        a.href = entry.media.siteUrl;
-
-        const fullTitle = entry.media.title.romaji;
-        a.textContent =
-          truncateTitles && fullTitle.length > 30
-            ? fullTitle.slice(0, 30) + "..."
-            : fullTitle;
-
-        a.addEventListener("click", (e) => {
-          e.preventDefault();
-          window.electron.ipcInvoke("open-link", a.href);
-        });
-        info.appendChild(a);
-
-        const span = document.createElement("span");
-        span.className = "episode-info";
-        const dateStr = new Date(
-          entry.media.nextAiringEpisode.airingAt * 1000
-        ).toLocaleString(lang === "fr" ? "fr-FR" : "en-US", {
-          weekday: "short",
-          day: "numeric",
-          month: "short",
-          hour: "2-digit",
-          minute: "2-digit",
-        });
-        span.textContent = `Ep. ${entry.media.nextAiringEpisode.episode} - ${dateStr}`;
-        info.appendChild(span);
-
-        const aired = entry.media.nextAiringEpisode.episode - 1;
-        const seen = entry.progress ?? 0;
-        const diff = aired - seen;
-        const status = document.createElement("span");
-        status.className = diff <= 0 ? "status-up-to-date" : "status-late";
-        status.textContent = diff <= 0 ? t.upToDate : t.late(diff);
-        info.appendChild(status);
-
-        const counts = document.createElement("span");
-        counts.className = diff <= 0 ? "status-up-to-date" : "status-late";
-        const totalEps = entry.media.episodes;
-        counts.textContent = totalEps ? `${seen} / ${totalEps}` : `${seen}`;
-        counts.style.marginTop = "2px";
-        info.appendChild(counts);
-
-        const actions = document.createElement("div");
-        actions.className = "episode-actions";
-        const decBtn = document.createElement("button");
-        decBtn.textContent = "-";
-        const incBtn = document.createElement("button");
-        incBtn.textContent = "+";
-
-        const toggleDisabled = (val) => {
-          decBtn.disabled = val;
-          incBtn.disabled = val;
-        };
-
-        decBtn.addEventListener("click", async () => {
-          toggleDisabled(true);
-          await updateProgress(entry.mediaId || entry.media.id, seen, -1);
-          toggleDisabled(false);
-        });
-        incBtn.addEventListener("click", async () => {
-          toggleDisabled(true);
-          await updateProgress(entry.mediaId || entry.media.id, seen, 1);
-          toggleDisabled(false);
-        });
-
-        actions.appendChild(decBtn);
-        actions.appendChild(incBtn);
-        info.appendChild(actions);
-
-        div.appendChild(info);
-        listEl.appendChild(div);
-      });
-    }
-
-    statusEl.textContent = t.statusUpdatedAt(
-      new Date().toLocaleTimeString(lang === "fr" ? "fr-FR" : "en-US")
-    );
-  } catch (error) {
-    console.error(error);
-    listEl.innerHTML = `<p><em>${translations[lang].statusError}</em></p>`;
-    document.getElementById("status").textContent = error.message;
-  }
-}
-
+// --- INIT ---
 document.addEventListener("DOMContentLoaded", () => {
   applyTheme(currentTheme);
-  applyResponsiveLayout();
+  switchView(viewMode);
   applyTranslations();
-  setupSettings(lang, translations, fetchData);
 
-  // Header actions visibility (show on hover with small grace period)
-  let hideActionsTimeout;
-  const header = document.querySelector("header");
-  const actions = document.querySelector(".header-actions");
-  const showActions = () => {
-    clearTimeout(hideActionsTimeout);
-    document.body.classList.add("show-actions");
+  // === HEADER ===
+  document.getElementById("viewListBtn").addEventListener("click", () => switchView('list'));
+  document.getElementById("viewGridBtn").addEventListener("click", () => switchView('grid'));
+  document.getElementById("refreshBtn").addEventListener("click", () => fetchData(true));
+  document.getElementById("closeBtn").addEventListener("click", () => window.electron.ipcInvoke("close-app"));
+  document.getElementById("settingsBtn").addEventListener("click", () => document.getElementById("settingsPanel").style.display = "flex");
+
+  // === SETTINGS ===
+  const closeSettings = () => document.getElementById("settingsPanel").style.display = "none";
+  document.getElementById("closeSettingsBtn").addEventListener("click", closeSettings);
+  document.getElementById("settingsPanel").addEventListener("click", (e) => { if(e.target.id === "settingsPanel") closeSettings(); });
+
+  // Inputs - Remplissage
+  const setVal = (id, key, def) => { 
+      const el = document.getElementById(id); 
+      if(el) {
+          el.value = localStorage.getItem(key) || def; 
+          el.addEventListener("change", (e) => {
+             localStorage.setItem(key, e.target.value);
+             if(id === 'defaultTheme') location.reload();
+             if(id === 'refreshRate') {
+                 clearInterval(refreshInterval);
+                 refreshInterval = setInterval(fetchData, parseInt(e.target.value));
+             }
+             if(id === 'languageSelect') location.reload();
+             if(['sortBy', 'sortOrder'].includes(id)) fetchData();
+          });
+      }
   };
-  const hideActions = () => {
-    clearTimeout(hideActionsTimeout);
-    hideActionsTimeout = setTimeout(
-      () => document.body.classList.remove("show-actions"),
-      600
-    );
-  };
-  header.addEventListener("mouseenter", showActions);
-  header.addEventListener("mouseleave", hideActions);
-  actions.addEventListener("mouseenter", showActions);
-  actions.addEventListener("mouseleave", hideActions);
+  
+  setVal("defaultTheme", "selected_theme", "0");
+  setVal("languageSelect", "lang", "fr");
+  setVal("refreshRate", "refresh_rate", "3600000");
+  setVal("sortBy", "sort_by", "next");
+  setVal("sortOrder", "sort_order", "asc");
 
-  // Pre-remplir les selecteurs de tri
-  document.getElementById("sortBy").value = sortBy;
-  document.getElementById("sortOrder").value = sortOrder;
+  const setCheck = (id, key, bodyClass = null) => {
+      const el = document.getElementById(id);
+      if(el) {
+          const saved = localStorage.getItem(key);
+          el.checked = saved === null ? true : saved === "true"; // Default true
+          
+          if(bodyClass) {
+             // Logic inversée pour hide-xxx ou standard pour wrap-xxx
+             // Si checked=true, on veut afficher => remove hide class
+             // Si checked=false, on veut cacher => add hide class
+             const isHideClass = bodyClass.startsWith('hide-');
+             if(isHideClass) {
+                 document.body.classList.toggle(bodyClass, !el.checked);
+             } else {
+                 document.body.classList.toggle(bodyClass, el.checked);
+             }
+          }
 
-  // Charger etat du checkbox
-  document.getElementById("truncateTitle").checked = truncateTitles;
+          el.addEventListener("change", (e) => {
+             localStorage.setItem(key, e.target.checked);
+             if(id === 'alwaysOnTop') window.electron.ipcInvoke("set-always-on-top", e.target.checked);
+             
+             if(bodyClass) {
+                 const isHideClass = bodyClass.startsWith('hide-');
+                 if(isHideClass) {
+                     document.body.classList.toggle(bodyClass, !e.target.checked);
+                 } else {
+                     document.body.classList.toggle(bodyClass, e.target.checked);
+                 }
+             }
 
-  // Sur changement utilisateur
-  document.getElementById("truncateTitle").addEventListener("change", (e) => {
-    truncateTitles = e.target.checked;
-    localStorage.setItem("truncate_title", truncateTitles);
-    fetchData();
-  });
+             if(id === 'wrapTitles') fetchData(false);
+          });
+      }
+  }
+  setCheck("alwaysOnTop", "always_on_top");
+  setCheck("wrapTitles", "wrap_titles", "wrap-titles");
+  setCheck("showEpisodeNumber", "show_ep_num", "hide-ep-num");
+  setCheck("showProgressBar", "show_progress", "hide-progress");
 
-  refreshInterval = setInterval(
-    fetchData,
-    parseInt(localStorage.getItem("refresh_rate") || 3600000)
-  );
-  window.refreshInterval = refreshInterval;
+  // Image Size Select
+  const sizeSelect = document.getElementById("imageSizeSelect");
+  if(sizeSelect) {
+      const savedSize = localStorage.getItem("image_size") || "medium";
+      sizeSelect.value = savedSize;
+      document.body.classList.add(`size-${savedSize}`);
+      
+      sizeSelect.addEventListener("change", (e) => {
+          const newSize = e.target.value;
+          document.body.classList.remove("size-small", "size-medium", "size-large");
+          document.body.classList.add(`size-${newSize}`);
+          localStorage.setItem("image_size", newSize);
+      });
+  }
 
-  document.getElementById("settingsBtn").addEventListener("click", () => {
-    document.getElementById("settingsPanel").style.display = "flex";
-  });
-
-  document.getElementById("closeSettingsBtn").addEventListener("click", () => {
-    document.getElementById("settingsPanel").style.display = "none";
-  });
-
-  document.getElementById("sortBy").addEventListener("change", (e) => {
-    sortBy = e.target.value;
-    localStorage.setItem("sort_by", sortBy);
-    fetchData();
-  });
-  document.getElementById("sortOrder").addEventListener("change", (e) => {
-    sortOrder = e.target.value;
-    localStorage.setItem("sort_order", sortOrder);
-    fetchData();
-  });
-
-  document.getElementById("refreshBtn").addEventListener("click", fetchData);
-
+  // === AUTH ===
+  const loginBtn = document.getElementById("loginBtn");
+  if(loginBtn) loginBtn.addEventListener("click", openAuthWindow);
+  
   document.getElementById("logoutBtn").addEventListener("click", () => {
-    localStorage.removeItem("anilist_token");
-    location.reload();
+      localStorage.removeItem("anilist_token");
+      location.reload();
   });
 
-  document.getElementById("closeBtn").addEventListener("click", () => {
-    window.electron.ipcInvoke("close-app");
-  });
-
-  document.getElementById("toggleTopBtn").addEventListener("click", () => {
-    const isTop = document.body.dataset.top === "true";
-    window.electron.ipcInvoke("set-always-on-top", !isTop);
-    document.body.dataset.top = (!isTop).toString();
-  });
-
-  document.getElementById("settingsPanel").addEventListener("click", (e) => {
-    if (e.target.id === "settingsPanel") {
-      document.getElementById("settingsPanel").style.display = "none";
-    }
-  });
-
-  document.getElementById("minimizeBtn").addEventListener("click", () => {
-    window.electron.ipcInvoke("minimize-app");
-  });
-
+  // START
   fetchData();
+  refreshInterval = setInterval(fetchData, parseInt(localStorage.getItem("refresh_rate") || 3600000));
 });
-
-window.addEventListener("resize", applyResponsiveLayout);
-window.addEventListener("DOMContentLoaded", applyResponsiveLayout);

@@ -1,5 +1,5 @@
 export function applyTheme(index) {
-  const themes = ["theme-dark", "theme-light", "theme-neon", "theme-neo"];
+  const themes = ["theme-glass", "theme-oled", "theme-cyber", "theme-light", "theme-dracula", "theme-nord", "theme-forest"];
   document.body.classList.remove(...themes);
   document.body.classList.add(themes[index]);
   localStorage.setItem("selected_theme", index);

@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Anilist Widget</title>
+  <title>Anime Airing Alert</title>
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https://s4.anilist.co; connect-src https://graphql.anilist.co" />
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="assets/styles/style.css" />
@@ -14,9 +14,9 @@
     <div id="loadingLine" class="loading-line"></div>
     <div class="drag-region">
       <div class="app-logo">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2L2 7l10 5 10-5-10-5zm0 9l2.5-1.25L12 8.5l-2.5 1.25L12 11zm0 2.5l-5-2.5-5 2.5L12 22l10-8.5-5-2.5-5 2.5z"/></svg>
+        <img src="assets/icons/icon_64.png" alt="logo" width="18" height="18">
       </div>
-      <span class="app-title" id="title">Anilist</span>
+      <span class="app-title" id="title">Anime Airing Alert</span>
     </div>
     
     <div class="window-controls">
@@ -68,7 +68,10 @@
       <div class="settings-body">
         
         <div class="setting-group">
-            <label id="labelTheme">Thème</label>
+            <div class="label-container">
+                <label id="labelTheme">Thème</label>
+                <span class="help-tip" id="helpTheme">?</span>
+            </div>
             <select id="defaultTheme">
                 <option value="0">Glass (Windows 11)</option>
                 <option value="1">Dark OLED</option>
@@ -81,7 +84,10 @@
         </div>
 
         <div class="setting-group">
-            <label id="labelLanguage">Langue</label>
+            <div class="label-container">
+                <label id="labelLanguage">Langue</label>
+                <span class="help-tip" id="helpLanguage">?</span>
+            </div>
             <select id="languageSelect">
                 <option value="fr">Français</option>
                 <option value="en">English</option>
@@ -89,7 +95,10 @@
         </div>
 
         <div class="setting-group">
-            <label id="labelRefresh">Fréquence</label>
+            <div class="label-container">
+                <label id="labelRefresh">Fréquence</label>
+                <span class="help-tip" id="helpRefresh">?</span>
+            </div>
             <select id="refreshRate">
                 <option value="1800000" id="opt30m">30 minutes</option>
                 <option value="3600000" id="opt1h">1 heure</option>
@@ -98,7 +107,10 @@
         </div>
 
          <div class="setting-group">
-            <label id="labelSortBy">Trier par</label>
+            <div class="label-container">
+                <label id="labelSortBy">Trier par</label>
+                <span class="help-tip" id="helpSortBy">?</span>
+            </div>
             <select id="sortBy">
                 <option value="next" id="optSortNext">Prochain épisode</option>
                 <option value="updated" id="optSortUpdated">Mise à jour</option>
@@ -106,14 +118,20 @@
             </select>
         </div>
          <div class="setting-group">
-            <label id="labelSortOrder">Ordre</label>
+            <div class="label-container">
+                <label id="labelSortOrder">Ordre</label>
+                <span class="help-tip" id="helpSortOrder">?</span>
+            </div>
             <select id="sortOrder">
                 <option value="asc" id="optOrderAsc">Croissant</option>
                 <option value="desc" id="optOrderDesc">Décroissant</option>
             </select>
         </div>
         <div class="setting-group">
-            <label id="labelImageSize">Taille Images</label>
+            <div class="label-container">
+                <label id="labelImageSize">Taille Images</label>
+                <span class="help-tip" id="helpImageSize">?</span>
+            </div>
             <select id="imageSizeSelect">
                 <option value="small" id="optSmall">Petit</option>
                 <option value="medium" id="optMedium">Moyen</option>
@@ -122,20 +140,39 @@
         </div>
         <hr class="glass-separator">
         <div class="setting-row-switch">
-            <span id="labelTop">Toujours au-dessus</span>
+            <div class="label-container">
+                <span id="labelTop">Toujours au-dessus</span>
+                <span class="help-tip" id="helpTop">?</span>
+            </div>
             <label class="switch"><input type="checkbox" id="alwaysOnTop"><span class="slider"></span></label>
         </div>
         <div class="setting-row-switch">
-             <span id="labelTruncate">Titres complets</span>
+             <div class="label-container">
+                <span id="labelTruncate">Titres complets</span>
+                <span class="help-tip" id="helpTruncate">?</span>
+             </div>
              <label class="switch"><input type="checkbox" id="wrapTitles"><span class="slider"></span></label>
         </div>
         <div class="setting-row-switch">
-             <span id="labelShowEp">Afficher Épisode</span>
+             <div class="label-container">
+                <span id="labelShowEp">Afficher Épisode</span>
+                <span class="help-tip" id="helpShowEp">?</span>
+             </div>
              <label class="switch"><input type="checkbox" id="showEpisodeNumber" checked><span class="slider"></span></label>
         </div>
         <div class="setting-row-switch">
-             <span id="labelShowProgress">Barre de progression</span>
+             <div class="label-container">
+                <span id="labelShowProgress">Barre de progression</span>
+                <span class="help-tip" id="helpShowProgress">?</span>
+             </div>
              <label class="switch"><input type="checkbox" id="showProgressBar" checked><span class="slider"></span></label>
+        </div>
+        <div class="setting-row-switch">
+             <div class="label-container">
+                <span id="labelShowLogo">Afficher Logo</span>
+                <span class="help-tip" id="helpShowLogo">?</span>
+             </div>
+             <label class="switch"><input type="checkbox" id="showAppLogo" checked><span class="slider"></span></label>
         </div>
         <button id="logoutBtn" class="danger-btn">Déconnexion</button>
       </div>

@@ -136,6 +136,11 @@ header {
 	opacity: 0.8;
 }
 
+body.hide-logo .drag-region {
+	display: none;
+}
+
+
 .app-title {
 	font-weight: 600;
 	font-size: 13px;
@@ -147,6 +152,7 @@ header {
 	display: flex;
 	align-items: center;
 	gap: 4px;
+	margin-left: auto;
 }
 
 .control-btn,
@@ -202,7 +208,7 @@ body.theme-light .control-btn:hover {
 
 body.theme-light .view-btn.active {
 	background: white;
-	shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+	box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
 }
 
 /* --- CONTENU --- */
@@ -645,16 +651,84 @@ body.hide-ep-num .current-ep-num {
 	background: #1e1e1e;
 	border: 1px solid rgba(255, 255, 255, 0.1);
 	width: 300px;
-	padding: 20px;
+	max-height: 85vh;
+	display: flex;
+	flex-direction: column;
 	border-radius: 16px;
 	box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
 	color: white;
+	overflow: hidden;
 }
+
+.settings-header {
+	padding: 20px 20px 10px 20px;
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+	margin-bottom: 15px;
+}
+
+.settings-header h2 {
+	margin: 0;
+	font-size: 18px;
+}
+
+.settings-body {
+	padding: 0 20px 20px 20px;
+	overflow-y: auto;
+	flex: 1;
+}
+
+/* Scrollbar pour les paramètres */
+.settings-body::-webkit-scrollbar {
+	width: 4px;
+}
+
+.settings-body::-webkit-scrollbar-thumb {
+	background: rgba(255, 255, 255, 0.1);
+	border-radius: 4px;
+}
+
+.glass-separator {
+	border: none;
+	border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+	margin: 15px 0;
+}
+
+.icon-btn {
+	background: transparent;
+	border: none;
+	color: var(--text-main);
+	cursor: pointer;
+	font-size: 18px;
+	padding: 5px;
+	border-radius: 50%;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	transition: background 0.2s;
+}
+
+.icon-btn:hover {
+	background: rgba(255, 255, 255, 0.1);
+}
+
 
 body.theme-light .glass-card {
 	background: white;
 	color: #222;
 }
+
+body.theme-light .settings-header,
+body.theme-light .glass-separator {
+	border-color: rgba(0, 0, 0, 0.1);
+}
+
+body.theme-light .settings-body::-webkit-scrollbar-thumb {
+	background: rgba(0, 0, 0, 0.1);
+}
+
 
 /* Inputs stylisés */
 select {
@@ -689,7 +763,42 @@ body.theme-light select {
 	font-weight: 500;
 	color: var(--text-main);
 	opacity: 0.9;
+	margin: 0;
+	/* Clear default label margins */
 }
+
+.label-container {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+}
+
+.help-tip {
+	width: 14px;
+	height: 14px;
+	background: rgba(255, 255, 255, 0.1);
+	border-radius: 50%;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	font-size: 10px;
+	font-weight: bold;
+	color: var(--text-sec);
+	cursor: help;
+	transition: all 0.2s;
+}
+
+.help-tip:hover {
+	background: var(--primary);
+	color: #000;
+	opacity: 1;
+}
+
+body.theme-light .help-tip {
+	background: rgba(0, 0, 0, 0.05);
+	color: #666;
+}
+
 
 .switch {
 	position: relative;

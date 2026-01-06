@@ -28,6 +28,7 @@ const translations = {
     labelTruncate: "Titres complets",
     labelShowEp: "Afficher Épisode",
     labelShowProgress: "Barre de progression",
+    labelShowLogo: "Afficher Logo/Nom",
     labelImageSize: "Taille Images",
     optSmall: "Petit",
     optMedium: "Moyen",
@@ -42,7 +43,19 @@ const translations = {
     optSortUpdated: "Mise à jour",
     optSortName: "Nom",
     optOrderAsc: "Croissant",
-    optOrderDesc: "Décroissant"
+    optOrderDesc: "Décroissant",
+    // Info-bulles
+    tipTheme: "Change l'apparence visuelle de l'application.",
+    tipLanguage: "Choisis entre le Français et l'Anglais.",
+    tipRefresh: "Définit à quel intervalle l'application vérifie les nouveaux épisodes.",
+    tipSortBy: "Choisis l'ordre de priorité d'affichage des animes.",
+    tipSortOrder: "Inverse l'ordre de la liste.",
+    tipImageSize: "Ajuste la taille des affiches d'animes.",
+    tipTop: "Garde le widget visible au-dessus des autres fenêtres.",
+    tipTruncate: "Affiche le titre complet sur plusieurs lignes ou le tronque.",
+    tipShowEp: "Affiche ou cache le numéro de l'épisode actuel/total.",
+    tipShowProgress: "Affiche ou cache la barre de progression visuelle.",
+    tipShowLogo: "Affiche ou cache le nom de l'application dans l'en-tête."
   },
   en: {
     statusUpdating: "Sync...",
@@ -60,6 +73,7 @@ const translations = {
     labelTruncate: "Full Titles",
     labelShowEp: "Show Episode",
     labelShowProgress: "Progress Bar",
+    labelShowLogo: "Show Logo/Title",
     labelImageSize: "Image Size",
     optSmall: "Small",
     optMedium: "Medium",
@@ -74,7 +88,19 @@ const translations = {
     optSortUpdated: "Updated",
     optSortName: "Name",
     optOrderAsc: "Ascending",
-    optOrderDesc: "Descending"
+    optOrderDesc: "Descending",
+    // Tooltips
+    tipTheme: "Changes the visual appearance of the application.",
+    tipLanguage: "Choose between French and English.",
+    tipRefresh: "Sets how often the app checks for new episodes.",
+    tipSortBy: "Choose the priority order for displaying anime.",
+    tipSortOrder: "Reverses the list order.",
+    tipImageSize: "Adjust the size of the anime covers.",
+    tipTop: "Keeps the widget visible above other windows.",
+    tipTruncate: "Shows the full title on multiple lines or truncates it.",
+    tipShowEp: "Shows or hides the current/total episode count.",
+    tipShowProgress: "Shows or hides the visual progress bar.",
+    tipShowLogo: "Shows or hides the app name and icon in the header."
   }
 };
 
@@ -350,6 +376,7 @@ function applyTranslations() {
     setText("labelTruncate", t.labelTruncate);
     setText("labelShowEp", t.labelShowEp);
     setText("labelShowProgress", t.labelShowProgress);
+    setText("labelShowLogo", t.labelShowLogo);
     setText("labelImageSize", t.labelImageSize);
     setText("optSmall", t.optSmall);
     setText("optMedium", t.optMedium);
@@ -364,6 +391,20 @@ function applyTranslations() {
     setText("optSortName", t.optSortName);
     setText("optOrderAsc", t.optOrderAsc);
     setText("optOrderDesc", t.optOrderDesc);
+
+    // tooltips
+    const setTip = (id, text) => { const el = document.getElementById(id); if(el) el.title = text; };
+    setTip("helpTheme", t.tipTheme);
+    setTip("helpLanguage", t.tipLanguage);
+    setTip("helpRefresh", t.tipRefresh);
+    setTip("helpSortBy", t.tipSortBy);
+    setTip("helpSortOrder", t.tipSortOrder);
+    setTip("helpImageSize", t.tipImageSize);
+    setTip("helpTop", t.tipTop);
+    setTip("helpTruncate", t.tipTruncate);
+    setTip("helpShowEp", t.tipShowEp);
+    setTip("helpShowProgress", t.tipShowProgress);
+    setTip("helpShowLogo", t.tipShowLogo);
 }
 
 // --- INIT ---
@@ -447,6 +488,7 @@ document.addEventListener("DOMContentLoaded", () => {
   setCheck("wrapTitles", "wrap_titles", "wrap-titles");
   setCheck("showEpisodeNumber", "show_ep_num", "hide-ep-num");
   setCheck("showProgressBar", "show_progress", "hide-progress");
+  setCheck("showAppLogo", "show_app_logo", "hide-logo");
 
   // Image Size Select
   const sizeSelect = document.getElementById("imageSizeSelect");

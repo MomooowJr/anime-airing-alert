@@ -2,9 +2,22 @@ const { app, BrowserWindow, ipcMain, shell, Tray, Menu } = require('electron');
 const path = require('path');
 const Store = require('electron-store');
 
+const store = new Store();
+
+// --- OPTIMIZATIONS ---
+// Disable hardware acceleration to save ~30-40MB of RAM (GPU Process)
+if (store.get('hw_acceleration', true) === false) {
+  app.disableHardwareAcceleration();
+}
+
+// Chromium switches for lower footprint
+app.commandLine.appendSwitch('js-flags', '--max-old-space-size=128');
+app.commandLine.appendSwitch('disable-site-isolation-trials');
+app.commandLine.appendSwitch('disable-bundle-config-cache');
+app.commandLine.appendSwitch('disable-gpu-shader-disk-cache');
+
 let mainWindow;
 let tray;
-const store = new Store();
 
 function createMainWindow() {
   mainWindow = new BrowserWindow({
@@ -21,7 +34,8 @@ function createMainWindow() {
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
-      nodeIntegration: false
+      nodeIntegration: false,
+      devTools: false
     }
   });
 
@@ -79,6 +93,15 @@ ipcMain.handle('open-link', (event, url) => {
 ipcMain.handle('set-always-on-top', (event, flag) => {
   mainWindow.setAlwaysOnTop(flag);
   store.set('alwaysOnTop', flag);
+});
+
+ipcMain.handle('set-gpu-acceleration', (event, flag) => {
+  store.set('hw_acceleration', flag);
+});
+
+ipcMain.handle('relaunch-app', () => {
+  app.relaunch();
+  app.exit(0);
 });
 
 ipcMain.handle('close-app', () => {

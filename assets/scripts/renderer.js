@@ -29,6 +29,8 @@ const translations = {
     labelShowEp: "Afficher Épisode",
     labelShowProgress: "Barre de progression",
     labelShowLogo: "Afficher Logo/Nom",
+    labelGpu: "Accélération Matérielle",
+    labelRestart: "Redémarrer",
     labelImageSize: "Taille Images",
     optSmall: "Petit",
     optMedium: "Moyen",
@@ -55,7 +57,9 @@ const translations = {
     tipTruncate: "Affiche le titre complet sur plusieurs lignes ou le tronque.",
     tipShowEp: "Affiche ou cache le numéro de l'épisode actuel/total.",
     tipShowProgress: "Affiche ou cache la barre de progression visuelle.",
-    tipShowLogo: "Affiche ou cache le nom de l'application dans l'en-tête."
+    tipShowLogo: "Affiche ou cache le nom de l'application dans l'en-tête.",
+    tipGpu: "Désactiver pour réduire la RAM (nécessite un redémarrage).",
+    tipRestart: "Relance l'application pour appliquer les changements système."
   },
   en: {
     statusUpdating: "Sync...",
@@ -74,6 +78,8 @@ const translations = {
     labelShowEp: "Show Episode",
     labelShowProgress: "Progress Bar",
     labelShowLogo: "Show Logo/Title",
+    labelGpu: "Hardware Acceleration",
+    labelRestart: "Restart",
     labelImageSize: "Image Size",
     optSmall: "Small",
     optMedium: "Medium",
@@ -100,7 +106,9 @@ const translations = {
     tipTruncate: "Shows the full title on multiple lines or truncates it.",
     tipShowEp: "Shows or hides the current/total episode count.",
     tipShowProgress: "Shows or hides the visual progress bar.",
-    tipShowLogo: "Shows or hides the app name and icon in the header."
+    tipShowLogo: "Shows or hides the app name and icon in the header.",
+    tipGpu: "Disable to reduce RAM usage (requires restart).",
+    tipRestart: "Relaunches the app to apply system changes."
   }
 };
 
@@ -377,6 +385,8 @@ function applyTranslations() {
     setText("labelShowEp", t.labelShowEp);
     setText("labelShowProgress", t.labelShowProgress);
     setText("labelShowLogo", t.labelShowLogo);
+    setText("labelGpu", t.labelGpu);
+    setText("labelRestart", t.labelRestart);
     setText("labelImageSize", t.labelImageSize);
     setText("optSmall", t.optSmall);
     setText("optMedium", t.optMedium);
@@ -405,6 +415,7 @@ function applyTranslations() {
     setTip("helpShowEp", t.tipShowEp);
     setTip("helpShowProgress", t.tipShowProgress);
     setTip("helpShowLogo", t.tipShowLogo);
+    setTip("helpGpu", t.tipGpu);
 }
 
 // --- INIT ---
@@ -489,6 +500,20 @@ document.addEventListener("DOMContentLoaded", () => {
   setCheck("showEpisodeNumber", "show_ep_num", "hide-ep-num");
   setCheck("showProgressBar", "show_progress", "hide-progress");
   setCheck("showAppLogo", "show_app_logo", "hide-logo");
+
+  // GPU Toggle
+  const gpuCheck = document.getElementById("enableGpu");
+  const isGpuEnabled = localStorage.getItem("hw_acceleration") !== "false"; // Default true
+  gpuCheck.checked = isGpuEnabled;
+  gpuCheck.addEventListener("change", (e) => {
+    localStorage.setItem("hw_acceleration", e.target.checked);
+    window.electron.ipcInvoke("set-gpu-acceleration", e.target.checked);
+    document.getElementById("restartNotice").style.display = "flex";
+  });
+
+  document.getElementById("restartBtn").addEventListener("click", () => {
+    window.electron.ipcInvoke("relaunch-app");
+  });
 
   // Image Size Select
   const sizeSelect = document.getElementById("imageSizeSelect");

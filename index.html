@@ -46,14 +46,15 @@
     <div id="lastUpdated" class="last-updated"></div>
     
     <div id="loginSection" class="empty-placeholder" style="display: none;">
-        <div class="placeholder-icon">🔒</div>
-        <p id="loginMessage">Connecte-toi pour synchroniser</p>
-        <button id="loginBtn" class="glass-btn">Connexion Anilist</button>
+        <p id="loginMessage" style="max-width: 250px; margin: 0 auto 15px;">Connecte-toi pour synchroniser</p>
+        <button id="loginBtn" class="glass-btn primary-btn">
+          <span id="loginBtnText">Connexion Anilist</span>
+        </button>
     </div>
     
     <div id="emptyState" class="empty-placeholder" style="display: none;">
         <div class="placeholder-icon">☕</div>
-        <p>Tout est à jour !</p>
+        <p id="emptyStateText">Tout est à jour !</p>
     </div>
 
     <div id="animeList" class="anime-container"></div>

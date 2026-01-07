@@ -15,6 +15,8 @@ const translations = {
   fr: {
     statusUpdating: "Sync...",
     statusError: "Erreur",
+    errorRateLimit: "Limite atteinte (Attends)",
+    errorAuth: "Erreur d'authentification",
     late: (n) => `+${n}`,
     upToDate: "À jour",
     settingsTitle: "Paramètres",
@@ -46,6 +48,11 @@ const translations = {
     optSortName: "Nom",
     optOrderAsc: "Croissant",
     optOrderDesc: "Décroissant",
+    // États
+    loginMessage: "Connecte-toi pour synchroniser ta liste.",
+    loginBtn: "Connexion Anilist",
+    emptyState: "Tout est à jour ! Café ? ☕",
+    welcomeTitle: "Bienvenue !",
     // Info-bulles
     tipTheme: "Change l'apparence visuelle de l'application.",
     tipLanguage: "Choisis entre le Français et l'Anglais.",
@@ -64,6 +71,8 @@ const translations = {
   en: {
     statusUpdating: "Sync...",
     statusError: "Error",
+    errorRateLimit: "Rate Limit (Wait)",
+    errorAuth: "Authentication Error",
     late: (n) => `+${n}`,
     upToDate: "Up to date",
     settingsTitle: "Settings",
@@ -95,6 +104,11 @@ const translations = {
     optSortName: "Name",
     optOrderAsc: "Ascending",
     optOrderDesc: "Descending",
+    // States
+    loginMessage: "Log in to sync your list.",
+    loginBtn: "Login with Anilist",
+    emptyState: "Up to date! Coffee? ☕",
+    welcomeTitle: "Welcome!",
     // Tooltips
     tipTheme: "Changes the visual appearance of the application.",
     tipLanguage: "Choose between French and English.",
@@ -229,6 +243,7 @@ async function fetchData(isManual = false) {
       statusEl.style.opacity = 1;
       loadingLine.classList.add("active");
       loadingLine.classList.remove("finished");
+      loadingLine.classList.remove("error"); // Ensure error state is cleared
       loadingLine.style.width = "50%"; // Fake progress
   }
 
@@ -244,14 +259,14 @@ async function fetchData(isManual = false) {
 
     if (response.status === 429) {
         console.warn("Rate Limit Exceeded");
-        if(isManual) statusEl.textContent = "Rate Limit (Wait)";
+        if(isManual) statusEl.textContent = t.errorRateLimit;
         isFetching = false;
         loadingLine.classList.remove("active");
         return;
     }
 
     const viewer = await response.json();
-    if(!viewer.data) throw new Error("Auth Error");
+    if(!viewer.data) throw new Error(t.errorAuth);
 
     if (isManual) loadingLine.style.width = "80%";
 
@@ -373,6 +388,12 @@ async function fetchData(isManual = false) {
 function applyTranslations() {
     const t = translations[lang];
     const setText = (id, txt) => { const el = document.getElementById(id); if(el) el.textContent = txt; };
+    setText("status", "");
+    setText("loginMessage", t.loginMessage);
+    setText("loginBtnText", t.loginBtn);
+    setText("emptyStateText", t.emptyState);
+    setText("welcomeTitle", t.welcomeTitle);
+    
     setText("settingsTitle", t.settingsTitle);
     setText("logoutBtn", t.logout);
     setText("labelTheme", t.labelTheme);

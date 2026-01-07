@@ -306,6 +306,7 @@ body.size-small #mainContent.view-list .anime-card {
 	min-height: 80px;
 }
 
+
 body.size-small #mainContent.view-list .anime-cover {
 	width: 50px;
 }
@@ -314,6 +315,7 @@ body.size-medium #mainContent.view-list .anime-card {
 	min-height: 100px;
 }
 
+
 body.size-medium #mainContent.view-list .anime-cover {
 	width: 70px;
 }
@@ -321,6 +323,7 @@ body.size-medium #mainContent.view-list .anime-cover {
 body.size-large #mainContent.view-list .anime-card {
 	min-height: 130px;
 }
+
 
 body.size-large #mainContent.view-list .anime-cover {
 	width: 90px;
@@ -372,15 +375,15 @@ body.wrap-titles #mainContent.view-list .anime-title {
 
 /* Tailles Grid Mode */
 body.size-small #mainContent.view-grid .anime-container {
-	grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+	grid-template-columns: repeat(auto-fill, minmax(85px, 1fr));
 }
 
 body.size-medium #mainContent.view-grid .anime-container {
-	grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+	grid-template-columns: repeat(auto-fill, minmax(125px, 1fr));
 }
 
 body.size-large #mainContent.view-grid .anime-container {
-	grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+	grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
 }
 
 

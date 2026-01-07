@@ -30,8 +30,12 @@
       "node_modules/electron-store/**/*"
     ],
     "win": {
-      "icon": "assets/icons/icon_64.png",
+      "icon": "assets/icons/app_icon.png",
       "target": "nsis"
+    },
+    "mac": {
+      "icon": "assets/icons/app_icon.png",
+      "target": ["dmg", "zip"]
     },
     "nsis": {
       "oneClick": true,

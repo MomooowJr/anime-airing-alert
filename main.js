@@ -25,7 +25,7 @@ function createMainWindow() {
     height: store.get('windowHeight', 500),
     minWidth: 240,
     minHeight: 250,
-	icon: path.join(__dirname, 'assets', 'icons', 'icon_64.png'),
+	icon: path.join(__dirname, 'assets', 'icons', 'app_icon.png'),
     frame: false,
     transparent: true,
     resizable: true,
@@ -62,7 +62,7 @@ function createMainWindow() {
 }
 
 function setupTray() {
-  const iconPath = path.join(__dirname, 'assets', 'icons', 'icon_64.png');
+  const iconPath = path.join(__dirname, 'assets', 'icons', 'app_icon.png');
   tray = new Tray(iconPath);
 
   const contextMenu = Menu.buildFromTemplate([

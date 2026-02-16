@@ -172,6 +172,7 @@ body.hide-logo .drag-region {
 	font-weight: 600;
 	font-size: 13px;
 	letter-spacing: 0.5px;
+	line-height: 1;
 }
 
 .window-controls {
@@ -261,22 +262,23 @@ body.theme-light .view-btn.active {
 	transition: opacity 0.3s;
 }
 
-.last-updated {
-	position: fixed;
-	bottom: 8px;
-	left: 0;
-	right: 0;
-	font-size: 10px;
-	color: var(--text-sec);
-	text-align: center;
-	opacity: 0.6;
-	pointer-events: none;
-	z-index: 10;
+/* On ajoute du padding en bas du main */
+#mainContent {
+	padding-bottom: 20px;
 }
 
-/* On ajoute du padding en bas du main pour ne pas que le dernier item soit sous last-updated */
-#mainContent {
-	padding-bottom: 30px;
+.header-info {
+	display: flex;
+	flex-direction: column;
+	justify-content: center;
+	line-height: 1.1;
+}
+
+.last-updated {
+	font-size: 9px;
+	color: var(--text-sec);
+	opacity: 0.6;
+	pointer-events: none;
 }
 
 /* Scrollbar invisible mais fonctionnelle */
